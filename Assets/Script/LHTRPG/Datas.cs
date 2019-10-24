@@ -10,6 +10,11 @@ namespace LHTRPG
         ActionType Type { get; }
     }
 
+    public enum CorrectionType
+    {
+        BaseReplace,
+    }
+
     public enum TagValueType
     {
         /// <summary> 無し：同時に取得するということがない </summary>

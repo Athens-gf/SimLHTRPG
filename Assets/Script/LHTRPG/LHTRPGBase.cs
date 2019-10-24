@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System;
 using UnityEngine;
 using KM.Utility;
+
 
 namespace LHTRPG
 {
@@ -10,7 +12,7 @@ namespace LHTRPG
     {
         /// <summary> ダイス結果を返す </summary>
         /// <returns>1~6の乱数</returns>
-        public static int GetDice() { return Random.Range(1, 7); }
+        public static int GetDice() { return UnityEngine.Random.Range(1, 7); }
 
         /// <summary> 複数個のダイス結果を返す </summary>
         /// <param name="num">ダイス個数</param>
@@ -19,7 +21,7 @@ namespace LHTRPG
 
         /// <summary> コンテナの中から1つランダムに返す </summary>
         /// <returns>ランダムに選ばれた要素</returns>
-        public static T GetRand<T>(this IEnumerable<T> list) { return list.ElementAt(Random.Range(0, list.Count())); }
+        public static T GetRand<T>(this IEnumerable<T> list) { return list.ElementAt(UnityEngine.Random.Range(0, list.Count())); }
     }
 
     [DebuggerDisplay("{ToString()}")]
@@ -57,7 +59,7 @@ namespace LHTRPG
             else if (ss.Count == 1 && (ss[0] == "" || int.TryParse(ss[0], out c)))
                 return new DiceNumber(0, c);
 
-            throw new System.Exception();
+            throw new Exception($"this string \"{str}\" can't change dice number");
         }
 
         /// <summary> ダイス個数の暗黙的変換、整数値ならダイス数0個としてみなす </summary>
@@ -154,7 +156,7 @@ namespace LHTRPG
         public IEnumerable<IStatusTag> GetStatusList(Status status, Tag target = null)
         {
             if (target != null && status != Status.WeakPoint && status != Status.Mitigation)
-                throw new System.Exception("Incorrect status.");
+                throw new Exception("Incorrect status.");
             var sts = HaveStatus.Where(t => t.Status == status);
             if (target != null)
                 sts = sts.Cast<IHaveTargetStatusTag>().Where(t => t.Target == target).Cast<IStatusTag>();
@@ -166,43 +168,70 @@ namespace LHTRPG
             => GetStatusList(status, target).Cast<T>();
     }
 
+    public class CorrectValueTuple<T>
+    {
+        public T ValueType { get; set; }
+        public Unit Unit { get; set; }
+        public Func<Character, List<Unit>, bool> Check { get; set; }
+        public Func<Character, List<Unit>, DiceNumber> Correct { get; set; }
+    }
+
     /// <summary> キャラクター(冒険者・ゲスト・エネミー)共通クラス </summary>
     public abstract class Character : Unit
     {
-        public Dictionary<ValueType, System.Func<int>> FuncReplaceBaseValues { get; private set; }
+        /// <summary>
+        /// 数値系の元の値を書き換える
+        /// Tuple：対象数値、発行Unit、Func(自己, 対象のリスト)　-> 変更値
+        /// </summary>
+        public LinkedList<CorrectValueTuple<ValueType>> ChangeOriginalValue { get; } = new LinkedList<CorrectValueTuple<ValueType>>();
 
-        public Dictionary<ValueType, System.Func<int>> FuncReplaceValues { get; private set; }
+        /// <summary>
+        /// 数値系を加減算する
+        /// Tuple：対象数値、発行Unit、Func(自己, 対象のリスト)　-> 修正値
+        /// </summary>
+        public LinkedList<CorrectValueTuple<ValueType>> AddSubValue { get; } = new LinkedList<CorrectValueTuple<ValueType>>();
 
-        public Dictionary<ValueType, List<int>> FuncBuffValues { get; private set; }
+        /// <summary>
+        /// 数値系の最終的な数値を書き換える
+        /// Tuple：対象数値、発行Unit、Func(自己, 対象のリスト)　-> 変更値
+        /// </summary>
+        public LinkedList<CorrectValueTuple<ValueType>> ReplaceValue { get; } = new LinkedList<CorrectValueTuple<ValueType>>();
 
-        public Dictionary<SkillValueType, System.Func<int>> FuncReplaceBaseSkillValues { get; private set; }
+        /// <summary>
+        /// 判定数値系の元の値を書き換える
+        /// Tuple：対象数値、発行Unit、Func(自己, 対象のリスト)　-> 変更値
+        /// </summary>
+        public LinkedList<CorrectValueTuple<SkillValueType>> ChangeOriginalSkillValue { get; } = new LinkedList<CorrectValueTuple<SkillValueType>>();
 
-        public Dictionary<SkillValueType, System.Func<int>> FuncReplaceSkillValues { get; private set; }
+        /// <summary>
+        /// 判定数値系を加減算する
+        /// Tuple：対象数値、発行Unit、Func(自己, 対象のリスト)　-> 修正値
+        /// </summary>
+        public LinkedList<CorrectValueTuple<SkillValueType>> AddSubSkillValue { get; } = new LinkedList<CorrectValueTuple<SkillValueType>>();
 
-        public Dictionary<SkillValueType, System.Func<DiceNumber>> FuncReplaceSkillDiceNumbers { get; private set; }
+        /// <summary>
+        /// 判定数値系の最終的な数値を書き換える
+        /// Tuple：対象数値、発行Unit、Func(自己, 対象のリスト)　-> 変更値
+        /// </summary>
+        public LinkedList<CorrectValueTuple<SkillValueType>> ReplaceSkillValue { get; } = new LinkedList<CorrectValueTuple<SkillValueType>>();
 
-        public Dictionary<SkillValueType, List<DiceNumber>> FuncBuffSkillDiceNumbers { get; private set; }
+        protected Character(UnitType type) : base(type) { }
 
-        public Character(UnitType type) : base(type)
+        protected abstract DiceNumber GetBaseValue(ValueType value);
+
+        public abstract DiceNumber GetValue(ValueType value);
+
+        public abstract DiceNumber GetAbility(AbilityType ability);
+
+        protected virtual DiceNumber GetBaseSkillValue(SkillValueType skillValue, List<Unit> target = null)
         {
-            FuncReplaceBaseValues = FuncReplaceBaseValues.ResetEnumDictionary(null);
-            FuncReplaceValues = FuncReplaceValues.ResetEnumDictionary(null);
-            FuncBuffValues = FuncBuffValues.ResetEnumDictionary(new List<int>());
-            FuncReplaceBaseSkillValues = FuncReplaceBaseSkillValues.ResetEnumDictionary(null);
-            FuncReplaceSkillValues = FuncReplaceSkillValues.ResetEnumDictionary(null);
-            FuncReplaceSkillDiceNumbers = FuncReplaceSkillDiceNumbers.ResetEnumDictionary(null);
-            FuncBuffSkillDiceNumbers = FuncBuffSkillDiceNumbers.ResetEnumDictionary(new List<DiceNumber>());
-        }
 
-        protected abstract int GetBaseValue(ValueType value);
-
-        public abstract int GetValue(ValueType value);
-
-        public abstract int GetAbility(AbilityType abi);
-
-        protected virtual int GetBaseSkillValue(SkillValueType skillValue)
-        {
-            if (FuncReplaceBaseSkillValues[skillValue] != null) return FuncReplaceBaseSkillValues[skillValue]();
+            if (ChangeOriginalSkillValue.Any(t => t.ValueType == skillValue))
+            {
+                var lastCOSK = ChangeOriginalSkillValue.Last(t => t.ValueType == skillValue);
+                if (lastCOSK.Check(this, target))
+                    return lastCOSK.Correct(this, target);
+            }
             switch (skillValue)
             {
                 case SkillValueType.Exercise:
@@ -240,14 +269,12 @@ namespace LHTRPG
 
         public override void Damage(int damage, DamageType type, Unit unit)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public override void Heal(int heal, Unit unit)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
     }
-
-
 }
