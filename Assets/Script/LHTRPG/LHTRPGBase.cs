@@ -168,64 +168,45 @@ namespace LHTRPG
             => GetStatusList(status, target).Cast<T>();
     }
 
-    public class CorrectValueTuple<T>
+    public class CorrectValueTuple<TVT, TN>
     {
-        public T ValueType { get; set; }
+        public TVT ValueType { get; set; }
         public Unit Unit { get; set; }
         public Func<Character, List<Unit>, bool> Check { get; set; }
-        public Func<Character, List<Unit>, DiceNumber> Correct { get; set; }
+        public Func<Character, List<Unit>, TN> Correct { get; set; }
     }
 
     /// <summary> キャラクター(冒険者・ゲスト・エネミー)共通クラス </summary>
     public abstract class Character : Unit
     {
-        /// <summary>
-        /// 数値系の元の値を書き換える
-        /// Tuple：対象数値、発行Unit、Func(自己, 対象のリスト)　-> 変更値
-        /// </summary>
-        public LinkedList<CorrectValueTuple<ValueType>> ChangeOriginalValue { get; } = new LinkedList<CorrectValueTuple<ValueType>>();
+        public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<ValueType, int>>> BaseValueCorrection;
+        public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<ValueType, DiceNumber>>> ValueCorrection;
+        public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<SkillValueType, int>>> BaseSkillValueCorrection;
+        public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<SkillValueType, DiceNumber>>> SkillValueCorrection;
 
-        /// <summary>
-        /// 数値系を加減算する
-        /// Tuple：対象数値、発行Unit、Func(自己, 対象のリスト)　-> 修正値
-        /// </summary>
-        public LinkedList<CorrectValueTuple<ValueType>> AddSubValue { get; } = new LinkedList<CorrectValueTuple<ValueType>>();
+        private void SettingCorrection<TVT, TN>(Dictionary<CorrectionType, LinkedList<CorrectValueTuple<TVT, TN>>> correction)
+        {
+            correction = new Dictionary<CorrectionType, LinkedList<CorrectValueTuple<TVT, TN>>>();
+            foreach (CorrectionType e in Enum.GetValues(typeof(CorrectionType)))
+                correction[e] = new LinkedList<CorrectValueTuple<TVT, TN>>();
+        }
 
-        /// <summary>
-        /// 数値系の最終的な数値を書き換える
-        /// Tuple：対象数値、発行Unit、Func(自己, 対象のリスト)　-> 変更値
-        /// </summary>
-        public LinkedList<CorrectValueTuple<ValueType>> ReplaceValue { get; } = new LinkedList<CorrectValueTuple<ValueType>>();
+        protected Character(UnitType type) : base(type)
+        {
+            SettingCorrection(BaseValueCorrection);
+            SettingCorrection(ValueCorrection);
+            SettingCorrection(BaseSkillValueCorrection);
+            SettingCorrection(SkillValueCorrection);
+        }
 
-        /// <summary>
-        /// 判定数値系の元の値を書き換える
-        /// Tuple：対象数値、発行Unit、Func(自己, 対象のリスト)　-> 変更値
-        /// </summary>
-        public LinkedList<CorrectValueTuple<SkillValueType>> ChangeOriginalSkillValue { get; } = new LinkedList<CorrectValueTuple<SkillValueType>>();
+        protected abstract int GetBaseValue(ValueType value);
 
-        /// <summary>
-        /// 判定数値系を加減算する
-        /// Tuple：対象数値、発行Unit、Func(自己, 対象のリスト)　-> 修正値
-        /// </summary>
-        public LinkedList<CorrectValueTuple<SkillValueType>> AddSubSkillValue { get; } = new LinkedList<CorrectValueTuple<SkillValueType>>();
-
-        /// <summary>
-        /// 判定数値系の最終的な数値を書き換える
-        /// Tuple：対象数値、発行Unit、Func(自己, 対象のリスト)　-> 変更値
-        /// </summary>
-        public LinkedList<CorrectValueTuple<SkillValueType>> ReplaceSkillValue { get; } = new LinkedList<CorrectValueTuple<SkillValueType>>();
-
-        protected Character(UnitType type) : base(type) { }
-
-        protected abstract DiceNumber GetBaseValue(ValueType value);
+        public abstract int GetAbility(AbilityType ability);
 
         public abstract DiceNumber GetValue(ValueType value);
 
-        public abstract DiceNumber GetAbility(AbilityType ability);
-
-        protected virtual DiceNumber GetBaseSkillValue(SkillValueType skillValue, List<Unit> target = null)
+        protected virtual int GetBaseSkillValue(SkillValueType skillValue)
         {
-
             if (ChangeOriginalSkillValue.Any(t => t.ValueType == skillValue))
             {
                 var lastCOSK = ChangeOriginalSkillValue.Last(t => t.ValueType == skillValue);

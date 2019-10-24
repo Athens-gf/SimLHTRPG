@@ -12,7 +12,12 @@ namespace LHTRPG
 
     public enum CorrectionType
     {
-        BaseReplace,
+        /// <summary> 元の数値を置き換え </summary>
+        ChangeOriginal,
+        /// <summary> 加減算 </summary>
+        AddSub,
+        /// <summary> 最終数値を置き換え </summary>
+        Replace,
     }
 
     public enum TagValueType
