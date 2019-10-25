@@ -179,7 +179,7 @@ namespace LHTRPG
     /// <summary> キャラクター(冒険者・ゲスト・エネミー)共通クラス </summary>
     public abstract class Character : Unit
     {
-        public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<ValueType, int>>> BaseValueCorrection;
+        public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<ValueType, int>>> ValueCorrection;
         public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<ValueType, DiceNumber>>> ValueCorrection;
         public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<SkillValueType, int>>> BaseSkillValueCorrection;
         public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<SkillValueType, DiceNumber>>> SkillValueCorrection;
