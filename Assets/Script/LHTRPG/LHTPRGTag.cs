@@ -65,17 +65,17 @@ namespace LHTRPG
     public class TagValue : Tag
     {
         /// <summary> 同じタグが追加されたときの動作 </summary>
-        public TagValueType Type { get; }
+        public TagBattleStatusType Type { get; }
 
         /// <summary> 数値 </summary>
         public virtual int Value { get; protected set; }
 
         /// <summary> 重複存在可能かどうか </summary>
-        public override bool IsCanOverlap => Type == TagValueType.Overlap;
+        public override bool IsCanOverlap => Type == TagBattleStatusType.Overlap;
 
         public override string ToString() { return "[" + Name + "：" + Value + "]"; }
 
-        public TagValue(string name, TagValueType type, int value) : base(name) { Type = type; Value = value; }
+        public TagValue(string name, TagBattleStatusType type, int value) : base(name) { Type = type; Value = value; }
     }
 
     /// <summary> 属性タグ </summary>
@@ -176,13 +176,13 @@ namespace LHTRPG
 
     public class TagMagicGrade : TagValue
     {
-        public TagMagicGrade(int value) : base("M", TagValueType.None, value) { }
+        public TagMagicGrade(int value) : base("M", TagBattleStatusType.None, value) { }
         public override string ToString() { return "[" + Name + Value + "]"; }
     }
 
     public class TagMagicCatalyst : TagValue
     {
-        public TagMagicCatalyst(int value) : base("魔触媒", TagValueType.None, value) { }
+        public TagMagicCatalyst(int value) : base("魔触媒", TagBattleStatusType.None, value) { }
         public override string ToString() { return "[" + Name + " " + Value + "]"; }
     }
 

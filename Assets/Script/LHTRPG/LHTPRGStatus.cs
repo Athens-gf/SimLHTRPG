@@ -131,7 +131,7 @@ namespace LHTRPG
     /// <summary> 数量を持つステータスタグ </summary>
     public class TagStatusValue : TagValue, IStatusTag
     {
-        public TagStatusValue(Unit unit, TagValueType type, Status status) : base(status.GetText(), type, 0)
+        public TagStatusValue(Unit unit, TagBattleStatusType type, Status status) : base(status.GetText(), type, 0)
         { Status = status; Unit = unit; }
 
         public Status Status { get; }
@@ -142,16 +142,16 @@ namespace LHTRPG
 
         public void Recieve(int value)
         {
-            if (Type == TagValueType.Overlap || Value == 0) Unit.HaveStatus.Add(this);
+            if (Type == TagBattleStatusType.Overlap || Value == 0) Unit.HaveStatus.Add(this);
             switch (Type)
             {
-                case TagValueType.Add:
+                case TagBattleStatusType.Add:
                     Value += value;
                     break;
-                case TagValueType.Max:
+                case TagBattleStatusType.Max:
                     Value = Mathf.Max(Value, value);
                     break;
-                case TagValueType.Overlap:
+                case TagBattleStatusType.Overlap:
                     Value = value;
                     break;
             }
@@ -161,41 +161,41 @@ namespace LHTRPG
 
     // ライフステータス
     /// <summary> 疲労 </summary>
-    public class StFatigue : TagStatusValue { public StFatigue(Unit unit) : base(unit, TagValueType.Add, Status.Fatigue) { } }
+    public class StFatigue : TagStatusValue { public StFatigue(Unit unit) : base(unit, TagBattleStatusType.Add, Status.Fatigue) { } }
 
     /// <summary> 弱点 </summary>
     public class StWeakPoint : TagStatusValue, IHaveTargetStatusTag
     {
         public Tag Target { get; protected set; }
 
-        public StWeakPoint(Unit unit, Tag targetTag) : base(unit, TagValueType.Overlap, Status.Mitigation) { Target = targetTag; }
+        public StWeakPoint(Unit unit, Tag targetTag) : base(unit, TagBattleStatusType.Overlap, Status.Mitigation) { Target = targetTag; }
 
         public override string ToString() { return Target == null ? base.ToString() : "[" + Name + "（" + Target.Name + "）：" + Value + "]"; }
     }
 
     // バッドステータス
     /// <summary> 衰弱 </summary>
-    public class StWeakness : TagStatusValue { public StWeakness(Unit unit) : base(unit, TagValueType.Max, Status.Weakness) { } }
+    public class StWeakness : TagStatusValue { public StWeakness(Unit unit) : base(unit, TagBattleStatusType.Max, Status.Weakness) { } }
 
     /// <summary> 追撃 </summary>
-    public class StPursuit : TagStatusValue { public StPursuit(Unit unit) : base(unit, TagValueType.Overlap, Status.Pursuit) { } }
+    public class StPursuit : TagStatusValue { public StPursuit(Unit unit) : base(unit, TagBattleStatusType.Overlap, Status.Pursuit) { } }
 
     // コンバットステータス
     /// <summary> 再生 </summary>
-    public class StRegeneration : TagStatusValue { public StRegeneration(Unit unit) : base(unit, TagValueType.Max, Status.Regeneration) { } }
+    public class StRegeneration : TagStatusValue { public StRegeneration(Unit unit) : base(unit, TagBattleStatusType.Max, Status.Regeneration) { } }
 
     /// <summary> 軽減 </summary>
     public class StMitigation : TagStatusValue, IHaveTargetStatusTag
     {
         public Tag Target { get; protected set; }
 
-        public StMitigation(Unit unit, Tag targetTag = null) : base(unit, TagValueType.Overlap, Status.Mitigation) { Target = targetTag; }
+        public StMitigation(Unit unit, Tag targetTag = null) : base(unit, TagBattleStatusType.Overlap, Status.Mitigation) { Target = targetTag; }
 
         public override string ToString() { return Target == null ? base.ToString() : "[" + Name + "（" + Target.Name + "）：" + Value + "]"; }
     }
 
     /// <summary> 障壁 </summary>
-    public class StBarrier : TagStatusValue { public StBarrier(Unit unit) : base(unit, TagValueType.Max, Status.Barrier) { } }
+    public class StBarrier : TagStatusValue { public StBarrier(Unit unit) : base(unit, TagBattleStatusType.Max, Status.Barrier) { } }
 
     // アザーステータス
     /// <summary> 二刀流状態 </summary>

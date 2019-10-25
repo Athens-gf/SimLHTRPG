@@ -168,52 +168,109 @@ namespace LHTRPG
             => GetStatusList(status, target).Cast<T>();
     }
 
-    public class CorrectValueTuple<TVT, TN>
+    public class CorTuple<TVT, TN>
     {
-        public TVT ValueType { get; set; }
-        public Unit Unit { get; set; }
-        public Func<Character, List<Unit>, bool> Check { get; set; }
-        public Func<Character, List<Unit>, TN> Correct { get; set; }
+        /// <summary> 種別 </summary>
+        public TVT Type { get; set; }
+        /// <summary> 発生源 </summary>
+        public Unit Source { get; set; }
+        /// <summary> 効果が有効かどうかのチェック
+        /// (対象) => 判定結果 </summary>
+        public Func<Character, bool> Check { get; set; } = c => true;
+        /// <summary> 補正値
+        /// (対象) => 補正値 </summary>
+        public Func<Character, TN> Correct { get; set; }
+    }
+
+    public class CorTupleJudgement
+    {
+        /// <summary> 種別 </summary>
+        public SkillValueType Type { get; set; }
+        /// <summary> 発生源 </summary>
+        public Unit Source { get; set; }
+        /// <summary> 効果が有効かどうかのチェック
+        /// (対象, 目標) => 判定結果 </summary>
+        public Func<Character, List<Unit>, bool> Check { get; set; } = (c, t) => true;
+        /// <summary> 補正値
+        /// (対象, 目標) => 補正値 </summary>
+        public Func<Character, List<Unit>, DiceNumber> Correct { get; set; }
+    }
+
+    public class CorTupleDamage
+    {
+        /// <summary> 発生源 </summary>
+        public Unit Source { get; set; }
+        /// <summary> 効果が有効かどうかのチェック
+        /// (対象, 目標) => 判定結果 </summary>
+        public Func<Character, List<Unit>, bool> Check { get; set; } = (c, t) => true;
+        /// <summary> 補正値
+        /// (対象, 目標) => 補正値 </summary>
+        public Func<Character, List<Unit>, DiceNumber> Correct { get; set; }
+    }
+    public class CorValues<T>
+    {
+        public Dictionary<CorType, LinkedList<T>> Values { get; }
+
+        public CorValues()
+        {
+            Values = new Dictionary<CorType, LinkedList<T>>();
+            foreach (CorType e in Enum.GetValues(typeof(CorType)))
+                Values[e] = new LinkedList<T>();
+        }
     }
 
     /// <summary> キャラクター(冒険者・ゲスト・エネミー)共通クラス </summary>
     public abstract class Character : Unit
     {
-        public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<ValueType, int>>> ValueCorrection;
-        public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<ValueType, DiceNumber>>> ValueCorrection;
-        public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<SkillValueType, int>>> BaseSkillValueCorrection;
-        public Dictionary<CorrectionType, LinkedList<CorrectValueTuple<SkillValueType, DiceNumber>>> SkillValueCorrection;
+        /// <summary> 数値系の修正値 </summary>
+        public CorValues<CorTuple<BattleStatusType, int>> CorBattleStatus { get; } = new CorValues<CorTuple<BattleStatusType, int>>();
+        /// <summary> 技能値の修正値 </summary>
+        public CorValues<CorTuple<SkillValueType, int>> CorSkillValue { get; } = new CorValues<CorTuple<SkillValueType, int>>();
+        /// <summary> 技能判定の修正値 </summary>
+        public CorValues<CorTuple<SkillValueType, DiceNumber>> CorJudgeValue { get; } = new CorValues<CorTuple<SkillValueType, DiceNumber>>();
+        /// <summary> ダメージロールの修正値 </summary>
+        public CorValues<CorTupleDamage> CorDamageRoll { get; } = new CorValues<CorTupleDamage>();
 
-        private void SettingCorrection<TVT, TN>(Dictionary<CorrectionType, LinkedList<CorrectValueTuple<TVT, TN>>> correction)
+        protected Character(UnitType type) : base(type) { }
+
+        /// <summary> 数値系の基礎数値を取得する関数 </summary>
+        /// <param name="type">種類</param>
+        /// <returns>基礎数値</returns>
+        protected abstract int GetBaseBattleStatus(BattleStatusType type);
+
+        /// <summary> 数値系の修正入り最終数値を取得する </summary>
+        /// <param name="type">種類</param>
+        /// <returns>最終数値</returns>
+        public virtual int GetBattleStatus(BattleStatusType type)
         {
-            correction = new Dictionary<CorrectionType, LinkedList<CorrectValueTuple<TVT, TN>>>();
-            foreach (CorrectionType e in Enum.GetValues(typeof(CorrectionType)))
-                correction[e] = new LinkedList<CorrectValueTuple<TVT, TN>>();
+            if (CorBattleStatus.Values[CorType.Replace].Any(t => t.Type == type))
+            {
+                var last = CorBattleStatus.Values[CorType.Replace].Last(t => t.Type == type);
+                if (last.Check(this))
+                    return last.Correct(this);
+            }
+            return GetBaseBattleStatus(type)
+                + CorBattleStatus.Values[CorType.AddSub].Where(t => t.Type == type && t.Check(this))
+                    .Select(t => t.Correct(this)).Sum();
         }
 
-        protected Character(UnitType type) : base(type)
-        {
-            SettingCorrection(BaseValueCorrection);
-            SettingCorrection(ValueCorrection);
-            SettingCorrection(BaseSkillValueCorrection);
-            SettingCorrection(SkillValueCorrection);
-        }
-
-        protected abstract int GetBaseValue(ValueType value);
-
+        /// <summary> 能力値を取得する </summary>
+        /// <param name="ability">能力種類</param>
+        /// <returns>能力値</returns>
         public abstract int GetAbility(AbilityType ability);
 
-        public abstract DiceNumber GetValue(ValueType value);
-
-        protected virtual int GetBaseSkillValue(SkillValueType skillValue)
+        /// <summary> 技能値の基礎数値を取得する関数 </summary>
+        /// <param name="type">種類</param>
+        /// <returns>基礎数値</returns>
+        protected virtual int GetBaseSkillValue(SkillValueType type)
         {
-            if (ChangeOriginalSkillValue.Any(t => t.ValueType == skillValue))
+            if (CorSkillValue.Values[CorType.ChangeOriginal].Any(t => t.Type == type))
             {
-                var lastCOSK = ChangeOriginalSkillValue.Last(t => t.ValueType == skillValue);
-                if (lastCOSK.Check(this, target))
-                    return lastCOSK.Correct(this, target);
+                var lastCSV = CorSkillValue.Values[CorType.ChangeOriginal].Last(t => t.Type == type);
+                if (lastCSV.Check(this))
+                    return lastCSV.Correct(this);
             }
-            switch (skillValue)
+            switch (type)
             {
                 case SkillValueType.Exercise:
                 case SkillValueType.Endurance:
@@ -232,30 +289,41 @@ namespace LHTRPG
                 case SkillValueType.Hit:
                     return Mathf.Max(GetAbility(AbilityType.STR), GetAbility(AbilityType.DEX), GetAbility(AbilityType.POW), GetAbility(AbilityType.INT));
                 default:
-                    return 0;
+                    throw new Exception("The argument is incorrect.");
             }
         }
 
-        public virtual int GetSkillValue(SkillValueType skillValue)
+        /// <summary> 技能値の最終数値を取得する関数 </summary>
+        /// <param name="type">種類</param>
+        /// <returns>最終数値</returns>
+        public virtual int GetSkillValue(SkillValueType type)
         {
-            if (FuncReplaceSkillValues[skillValue] != null) return FuncReplaceSkillValues[skillValue]();
-            return GetBaseSkillValue(skillValue) + FuncBuffSkillDiceNumbers[skillValue].Sum(dn => dn.FixedNumber);
+            if (CorSkillValue.Values[CorType.Replace].Any(t => t.Type == type))
+            {
+                var last = CorSkillValue.Values[CorType.Replace].Last(t => t.Type == type);
+                if (last.Check(this))
+                    return last.Correct(this);
+            }
+            return GetBaseSkillValue(type)
+                + CorSkillValue.Values[CorType.AddSub].Where(t => t.Type == type && t.Check(this))
+                    .Select(t => t.Correct(this)).Sum();
         }
 
-        public virtual DiceNumber GetSkillDiceNumber(SkillValueType skillValue)
+        /// <summary> 技能判定のロール数値を取得する関数 </summary>
+        /// <param name="type">種類</param>
+        /// <returns>最終数値</returns>
+        public virtual DiceNumber GetJudgeValue(SkillValueType type)
         {
-            if (FuncReplaceSkillDiceNumbers[skillValue] != null) return FuncReplaceSkillDiceNumbers[skillValue]();
-            return new DiceNumber(2 + FuncBuffSkillDiceNumbers[skillValue].Sum(dn => dn.Dice), GetSkillValue(skillValue));
-        }
-
-        public override void Damage(int damage, DamageType type, Unit unit)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void Heal(int heal, Unit unit)
-        {
-            throw new NotImplementedException();
+            if (CorJudgeValue.Values[CorType.Replace].Any(t => t.Type == type))
+            {
+                var last = CorJudgeValue.Values[CorType.Replace].Last(t => t.Type == type);
+                if (last.Check(this))
+                    return last.Correct(this);
+            }
+            return new DiceNumber(2, GetSkillValue(type))
+                + CorJudgeValue.Values[CorType.AddSub].Where(t => t.Type == type && t.Check(this))
+                    .Select(t => t.Correct(this))
+                    .Aggregate((t0, t1) => t0 + t1);
         }
     }
 }

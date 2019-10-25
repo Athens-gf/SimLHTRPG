@@ -10,7 +10,7 @@ namespace LHTRPG
         ActionType Type { get; }
     }
 
-    public enum CorrectionType
+    public enum CorType
     {
         /// <summary> 元の数値を置き換え </summary>
         ChangeOriginal,
@@ -20,7 +20,7 @@ namespace LHTRPG
         Replace,
     }
 
-    public enum TagValueType
+    public enum TagBattleStatusType
     {
         /// <summary> 無し：同時に取得するということがない </summary>
         None,
@@ -112,7 +112,7 @@ namespace LHTRPG
         INT,
     }
 
-    public enum ValueType
+    public enum BattleStatusType
     {
         /// <summary> STR能力基本値 </summary>
         STRBase,
