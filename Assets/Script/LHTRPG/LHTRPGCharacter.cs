@@ -3,17 +3,18 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using EnumExtension;
 using KM.Unity;
-using KM.Utility;
+using AthensUtility;
 
-using Ability = System.Collections.Generic.Dictionary<LHTRPG.Character.Ability, int>;
 
 namespace LHTRPG
 {
+    using Ability = Dictionary<AbilityType, int>;
+
     public static partial class LHTRPGBase
     {
-        public static ArchetypeJob GetArchetype(this MainJob _mj)
+        public static ArchetypeJob GetArchetype(this MainJob mainJob)
         {
-            switch (_mj)
+            switch (mainJob)
             {
                 case MainJob.Guardian:
                 case MainJob.Samurai:
@@ -36,25 +37,17 @@ namespace LHTRPG
             }
         }
 
-        public static TagRace GetTag(this Race _race, Unit _unit) { return new TagRace(_unit, _race); }
-        public static TagMainJob GetTag(this MainJob _mj, Unit _unit) { return new TagMainJob(_unit, _mj); }
+        public static TagRace GetTag(this Race race, Unit unit = null) { return new TagRace(race) { Unit = unit }; }
+        public static TagMainJob GetTag(this MainJob mj, Unit unit = null) { return new TagMainJob(mj) { Unit = unit }; }
     }
 
-    public class Sex : Tag
+    public enum Sex
     {
-        public enum Sex
-        {
-            [EnumText("男性")] Male,
-            [EnumText("女性")] Female,
-            [EnumText("その他")] Other,
-        }
-        public Sex Type { get; private set; }
-        public string OtherName { get; private set; }
-        public Sex(bool _isMale) : this(null, _isMale) { }
-        public Sex(Unit _unit, bool _isMale) : base(_unit, (_isMale ? Sex.Male : Sex.Female).GetText()) { Type = _isMale ? Sex.Male : Sex.Female; }
-        public Sex(string _other) : this(null, _other) { }
-        public Sex(Unit _unit, string _other) : base(_unit, _other) { Type = Sex.Other; OtherName = _other; }
+        [EnumText("男性")] Male,
+        [EnumText("女性")] Female,
     }
+
+    public class TagSex : Tag<Sex> { public TagSex(Sex type) : base(type) { } }
 
     public enum Race
     {
@@ -68,11 +61,7 @@ namespace LHTRPG
         [EnumText("法儀族")] Pattern,
     }
 
-    public class TagRace : Tag
-    {
-        public Race Race { get; private set; }
-        public TagRace(Unit _unit, Race _race) : base(_unit, _race.GetText()) { Race = _race; }
-    }
+    public class TagRace : Tag<Race> { public TagRace(Race type) : base(type) { } }
 
     public enum ArchetypeJob
     {
@@ -102,158 +91,142 @@ namespace LHTRPG
         [EnumText("付与術師")] Enchanter,
     }
 
-    public class TagMainJob : Tag
-    {
-        public MainJob MainJob { get; private set; }
-        public TagMainJob(Unit _unit, MainJob _mj) : base(_unit, _mj.GetText()) { MainJob = _mj; }
-    }
+    public class TagMainJob : Tag<MainJob> { public TagMainJob(MainJob type) : base(type) { } }
 
-    public class SubJob : Tag
+    public class TagSubJob : Tag
     {
-        public static ReadOnlyCollection<string> SubJobs { get; private set; }
-        static SubJob()
+        public static ReadOnlyCollection<string> SubJobs { get; }
+        static TagSubJob()
         {
             var csv = new CSVReader(@"Data/SubJobs");
             var l = new List<string>();
             for (int i = 0; i < csv.Row; i++) l.Add(csv[i][0]);
             SubJobs = new ReadOnlyCollection<string>(l);
         }
-        public static SubJob GetRand(Unit _unit) { return new SubJob(_unit, SubJobs.GetRand()); }
+        public static TagSubJob GetRand() { return new TagSubJob(SubJobs.GetRand()); }
 
         public string BaseSubJob { get; private set; }
-        public SubJob(string _name) : this((Unit)null, _name) { }
-        public SubJob(Unit _unit, string _name) : base(_unit, _name) { BaseSubJob = _name; }
-        public SubJob(string _name, string _base) : this(null, _name, _base) { }
-        public SubJob(Unit _unit, string _name, string _base) : base(_unit, _name) { BaseSubJob = _base; }
+        public TagSubJob(string name) : base(name) { BaseSubJob = name; }
+        public TagSubJob(string name, string @base) : base(name) { BaseSubJob = @base; }
+    }
+
+    public struct Creeds
+    {
+        public string Name { get; set; }
+        public string Creed { get; set; }
+        public Person Tag { get; set; }
     }
 
     public class GuidingCreed
     {
-        public struct Creed_s
-        {
-            public string Name { get; set; }
-            public string Creed { get; set; }
-            public TagPerson.Type Tag { get; set; }
-        }
-        public static ReadOnlyCollection<Creed_s> Creeds { get; private set; }
+        public static ReadOnlyCollection<Creeds> Creeds { get; }
         public static List<string> CreedNames { get { return Creeds.Select(c => c.Name).ToList(); } }
         static GuidingCreed()
         {
             var csv = new CSVReader(@"Data/Creed");
-            var lb = new List<Creed_s>();
+            var lb = new List<Creeds>();
             foreach (var line in csv.Line())
-                lb.Add(new Creed_s { Name = line[0], Creed = line[1], Tag = line[2].GetEnumByText<TagPerson.Type>() });
-            Creeds = new ReadOnlyCollection<Creed_s>(lb);
+                lb.Add(new Creeds { Name = line[0], Creed = line[1], Tag = line[2].GetEnumByText<Person>() });
+            Creeds = new ReadOnlyCollection<Creeds>(lb);
         }
-        public static GuidingCreed GetRand(Unit _unit) { return new GuidingCreed(_unit, Creeds.GetRand()); }
+        public static GuidingCreed GetRand(Unit unit) { return new GuidingCreed(unit, Creeds.GetRand()); }
 
         public Unit Unit { get; set; }
-        public Creed_s Creed { get; private set; }
-        public TagPerson Tag { get; private set; }
+        public Creeds Creed { get; set; }
+        public TagPerson Tag { get; set; }
 
-        public GuidingCreed(string _creedName) : this(null, _creedName) { }
-        public GuidingCreed(Unit _unit, string _creedName) : this(_unit, Creeds.First(c => c.Name == _creedName)) { }
-        public GuidingCreed(Creed_s _creed) : this(null, _creed) { }
-        public GuidingCreed(Unit _unit, Creed_s _creed) { Unit = _unit; Creed = _creed; Tag = new TagPerson(Unit, Creed.Tag); }
+        public GuidingCreed(Unit unit, string creedName) : this(unit, Creeds.First(c => c.Name == creedName)) { }
+        public GuidingCreed(Unit unit, Creeds creed) { Creed = creed; Tag = new TagPerson(Creed.Tag) { Unit = unit }; }
     }
 
     public interface IHumanCharacter
     {
         bool IsAdventurer { get; }
         string Name { get; set; }
-        Sex Sex { get; set; }
+        TagSex Sex { get; set; }
         int Level { get; set; }
         GuidingCreed GuidingCreed { get; set; }
-        Race Race { get; set; }
-        SubJob SubJob { get; set; }
+        TagRace Race { get; set; }
+        TagSubJob SubJob { get; set; }
         List<Tag> OtherTags { get; }
     }
 
     public class Extra : Unit, IHumanCharacter
     {
-        public Extra() : base(Type.Extra) { OtherTags = new List<Tag>(); }
+        public Extra() : base(UnitType.Extra) { }
 
         public bool IsAdventurer { get; set; }
         public string Name { get; set; }
-        private Sex sex;
-        public Sex Sex { get { return sex; } set { sex = value.Type != Sex.Sex.Other ? new Sex(this, value.Type == Sex.Sex.Male) : new Sex(this, value.OtherName); } }
+        private TagSex sex;
+        public TagSex Sex { get => sex; set => sex = new TagSex(value.Type) { Unit = this }; }
         public int Level { get; set; }
         private GuidingCreed guidingCreed;
         public GuidingCreed GuidingCreed { get { return guidingCreed; } set { guidingCreed = new GuidingCreed(this, value.Creed); } }
-        public Race Race { get; set; }
-        private SubJob subJob;
-        public SubJob SubJob { get { return subJob; } set { subJob = new SubJob(this, value.Name, value.BaseSubJob); } }
-        public List<Tag> OtherTags { get; private set; }
+        private TagRace race;
+        public TagRace Race { get => race; set => race = new TagRace(value.Type) { Unit = this }; }
+        private TagSubJob subJob;
+        public TagSubJob SubJob { get { return subJob; } set { subJob = new TagSubJob(value.Name, value.BaseSubJob) { Unit = this }; } }
+        public List<Tag> OtherTags { get; } = new List<Tag>();
 
-        protected override List<Tag> LTags
+        protected override IEnumerable<Tag> LTags
         {
-            get
-            {
-                return (new Tag(this, IsAdventurer ? "冒険者" : "大地人")).MakeCollection().Append(Sex).Append(Race.GetTag(this))
-                    .Append(SubJob).Append(GuidingCreed.Tag).Append(OtherTags).Where(t => t != null).ToList();
-            }
+            get => new Tag(IsAdventurer ? "冒険者" : "大地人") { Unit = this }.MakeCollection()
+                    .Append(Sex)
+                    .Append(Race)
+                    .Append(SubJob)
+                    .Append(GuidingCreed.Tag)
+                    .Concat(OtherTags)
+                    .Where(t => t != null);
             set { }
         }
 
-        public override void Damage(int _damage, DamageType _type, Unit _unit) { }
+        public override void Damage(int damage, DamageType type, Unit unit) { }
 
-        public override void Heal(int _heal, Unit _unit) { }
+        public override void Heal(int heal, Unit unit) { }
     }
 
     public class Guest : Adventurer
     {
         public override bool IsAdventurer { get; set; }
-        public Guest() : base(Type.Guest) { }
+        public Guest() : base(UnitType.Guest) { }
     }
 
     public class Adventurer : Character, IHumanCharacter
     {
-        public struct Status_t
+        public struct Statust
         {
             public Ability Ability { get; set; }
             public int HP { get; set; }
             public int Other { get; set; }
         }
-        public static Dictionary<MainJob, Status_t> StaMainJobs { get; private set; }
-        public static Dictionary<Race, Status_t> StaRaces { get; private set; }
+        public static Dictionary<MainJob, Statust> StaMainJobs { get; }
+        public static Dictionary<Race, Statust> StaRaces { get; }
 
         static Adventurer()
         {
-            var csv = new CSVReader(@"Data/StatusMainJob");
-            StaMainJobs = new Dictionary<MainJob, Status_t>();
-            foreach (var line in csv.Line())
+            void func<T>(Dictionary<T, Statust> stas, string filepath) where T : System.Enum
             {
+                var csv = new CSVReader(filepath);
+                stas = new Dictionary<T, Statust>();
+                foreach (var line in csv.Line())
+                {
 
-                StaMainJobs[line[0].GetEnumByText<MainJob>()] = new Status_t
-                {
-                    Ability = new Ability
+                    stas[line[0].GetEnumByText<T>()] = new Statust
                     {
-                        { Ability.STR, int.Parse(line[1]) },
-                        { Ability.DEX, int.Parse(line[2]) },
-                        { Ability.POW, int.Parse(line[3]) },
-                        { Ability.INT, int.Parse(line[4]) }
-                    },
-                    HP = int.Parse(line[5]),
-                    Other = int.Parse(line[6])
-                };
+                        Ability = new Ability
+                        {
+                            { AbilityType.STR, int.Parse(line[1]) },
+                            { AbilityType.DEX, int.Parse(line[2]) },
+                            { AbilityType.POW, int.Parse(line[3]) },
+                            { AbilityType.INT, int.Parse(line[4]) }
+                        },
+                        HP = int.Parse(line[5]),
+                        Other = int.Parse(line[6])
+                    };
+                }
             }
-            csv = new CSVReader(@"Data/StatusRace");
-            StaRaces = new Dictionary<Race, Status_t>();
-            foreach (var line in csv.Line())
-            {
-                StaRaces[line[0].GetEnumByText<Race>()] = new Status_t
-                {
-                    Ability = new Ability
-                    {
-                        { Ability.STR, int.Parse(line[1]) },
-                        { Ability.DEX, int.Parse(line[2]) },
-                        { Ability.POW, int.Parse(line[3]) },
-                        { Ability.INT, int.Parse(line[4]) }
-                    },
-                    HP = int.Parse(line[5]),
-                    Other = int.Parse(line[6])
-                };
-            }
+            func(StaMainJobs, @"Data/StatusMainJob");
+            func(StaRaces, @"Data/StatusRace");
         }
 
         public virtual bool IsAdventurer { get { return true; } set { } }
@@ -286,13 +259,13 @@ namespace LHTRPG
         public ArchetypeJob ArchetypeJob { get { return MainJob.GetArchetype(); } }
         public MainJob MainJob { get; set; }
 
-        public Status_t StaMainJob { get { return StaMainJobs[MainJob]; } }
-        public Status_t StaRace { get { return StaRaces[Race]; } }
+        public Statust StaMainJob { get { return StaMainJobs[MainJob]; } }
+        public Statust StaRace { get { return StaRaces[Race]; } }
         public Ability AbiHuman { get; set; }
         public Ability AbiBonus { get; set; }
         public int SumAbiBonus { get { return AbiBonus.Sum(a => a.Value); } }
 
-        protected Adventurer(Type _type) : base(_type)
+        protected Adventurer(UnitType type) : base(type)
         {
             Connection = new List<Character>();
             HistorySubJob = new List<SubJob>();
@@ -304,12 +277,12 @@ namespace LHTRPG
 
         public Adventurer() : this(Type.Adventurer) { }
 
-        private int GetBaseAbility(Ability _ba) { return StaMainJob.Ability[_ba] + StaRace.Ability[_ba] + AbiHuman[_ba] + AbiBonus[_ba] + Rank - 1; }
+        private int GetBaseAbility(Ability ba) { return StaMainJob.Ability[ba] + StaRace.Ability[ba] + AbiHuman[ba] + AbiBonus[ba] + Rank - 1; }
 
-        protected override int GetBaseValue(Value _value)
+        protected override int GetBaseValue(Value value)
         {
-            if (FuncReplaceBaseValues[_value] != null) return FuncReplaceBaseValues[_value]();
-            switch (_value)
+            if (FuncReplaceBaseValues[value] != null) return FuncReplaceBaseValues[value]();
+            switch (value)
             {
                 case Value.BaseSTR:
                     return GetBaseAbility(Ability.STR);
@@ -350,15 +323,15 @@ namespace LHTRPG
             }
         }
 
-        public override int GetValue(Value _value)
+        public override int GetValue(Value value)
         {
-            if (FuncReplaceValues[_value] != null) return FuncReplaceValues[_value]();
-            return GetBaseValue(_value) + FuncBuffValues[_value].Sum();
+            if (FuncReplaceValues[value] != null) return FuncReplaceValues[value]();
+            return GetBaseValue(value) + FuncBuffValues[value].Sum();
         }
 
-        public override int GetAbility(Ability _abi)
+        public override int GetAbility(Ability abi)
         {
-            switch (_abi)
+            switch (abi)
             {
                 case Ability.STR:
                     return GetValue(Value.STR);

@@ -1,84 +1,84 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
- 
+
 namespace EnumExtension
 {
     [AttributeUsage(AttributeTargets.Field)]
     public class EnumText : Attribute
     {
-		public EnumText(string text) { Text = text; }
-		public string Text { get; set; }
+        public EnumText(string text) { Text = text; }
+        public string Text { get; set; }
     }
- 
+
     public static class EnumExtension
     {
-        private static Dictionary<Enum, string> _textCache = new Dictionary<Enum, string>();
- 
-        public static string GetText(this Enum _instance)
+        private static Dictionary<Enum, string> textCache = new Dictionary<Enum, string>();
+
+        public static string GetText(this Enum instance)
         {
-            lock (_textCache)
+            lock (textCache)
             {
-                if (_textCache.ContainsKey(_instance)) return _textCache[_instance];
- 
-                var instanceType = _instance.GetType();
- 
-                Func<Enum, string> enumToText = delegate(Enum enumElement)
+                if (textCache.ContainsKey(instance)) return textCache[instance];
+
+                var instanceType = instance.GetType();
+
+                Func<Enum, string> enumToText = delegate (Enum enumElement)
                 {
-                    if (_textCache.ContainsKey(enumElement)) return _textCache[enumElement];
- 
+                    if (textCache.ContainsKey(enumElement)) return textCache[enumElement];
+
                     var attributes
                         = instanceType.GetField(enumElement.ToString()).GetCustomAttributes(typeof(EnumText), true);
-                    if (attributes.Length == 0) return _instance.ToString();
- 
+                    if (attributes.Length == 0) return instance.ToString();
+
                     var enumText = ((EnumText)attributes[0]).Text;
-                    _textCache.Add(enumElement, enumText);
- 
+                    textCache.Add(enumElement, enumText);
+
                     return enumText;
                 };
- 
-                if (Enum.IsDefined(instanceType, _instance))
+
+                if (Enum.IsDefined(instanceType, instance))
                 {
-                    return enumToText(_instance);
+                    return enumToText(instance);
                 }
                 else if (instanceType.GetCustomAttributes(typeof(FlagsAttribute), true).Length > 0)
                 {
-                    var instanceValue = Convert.ToInt64(_instance);
- 
+                    var instanceValue = Convert.ToInt64(instance);
+
                     var enumes =
                         from Enum value in Enum.GetValues(instanceType)
                         where (instanceValue & Convert.ToInt64(value)) != 0
                         select value;
- 
-                    var enumSumValue = 
+
+                    var enumSumValue =
                         enumes.Sum(value => Convert.ToInt64(value));
- 
-                    if (enumSumValue != instanceValue) return _instance.ToString();
- 
+
+                    if (enumSumValue != instanceValue) return instance.ToString();
+
                     var enumText = string.Join(", ",
                         (from Enum value in enumes
                          select enumToText(value)).ToArray());
- 
-                    if (!_textCache.ContainsKey(_instance))
+
+                    if (!textCache.ContainsKey(instance))
                     {
-                        _textCache.Add(_instance, enumText);
+                        textCache.Add(instance, enumText);
                     }
- 
+
                     return enumText;
                 }
                 else
                 {
-                    return _instance.ToString();
+                    return instance.ToString();
                 }
             }
         }
 
-		public static T GetEnumByText<T>(this string _str) where T : struct
-		{
-			foreach (Enum e in Enum.GetValues(typeof(T)))
-				if (e.GetText() == _str)
-					return (T)Enum.Parse(typeof(T), Enum.GetName(typeof(T), e), false);
-			return (T)Enum.ToObject(typeof(T), 0);
-		}
-	}
+        public static T GetEnumByText<T>(this string str) where T : Enum
+        {
+            foreach (Enum e in Enum.GetValues(typeof(T)))
+                if (e.GetText() == str)
+                    return (T)Enum.Parse(typeof(T), Enum.GetName(typeof(T), e), false);
+            return (T)Enum.ToObject(typeof(T), 0);
+        }
+    }
 }

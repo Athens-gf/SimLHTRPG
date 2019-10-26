@@ -10,7 +10,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <ProjectGuid>{DE50D58B-9D60-C9FF-DEC7-00754540AF04}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -65,7 +66,6 @@
     <Compile Include="Assets\Script\CSVReader.cs" />
     <Compile Include="Assets\Script\EnumExtension.cs" />
     <Compile Include="Assets\Script\Extensions.cs" />
-    <Compile Include="Assets\Script\LHTRPG\Datas.cs" />
     <Compile Include="Assets\Script\LHTRPG\LHTPRGStatus.cs" />
     <Compile Include="Assets\Script\LHTRPG\LHTPRGTag.cs" />
     <Compile Include="Assets\Script\LHTRPG\LHTRPGBase.cs" />
@@ -73,6 +73,7 @@
     <Compile Include="Assets\Script\LHTRPG\LHTRPGEnemy.cs" />
     <Compile Include="Assets\Script\LHTRPG\LHTRPGProp.cs" />
     <Compile Include="Assets\Script\LHTRPG\LHTRPGScene.cs" />
+    <Compile Include="Assets\Script\LHTRPG\LHTRPGUnit.cs" />
     <Compile Include="Assets\Script\LHTRPG\Skill\LHTRPGEffect.cs" />
     <Compile Include="Assets\Script\LHTRPG\Skill\LHTRPGSkill.cs" />
     <Compile Include="Assets\Script\LHTRPG\Skill\SkillBasic.cs" />
