@@ -15,7 +15,7 @@ namespace LHTRPG
         public static bool IsExist<T>(this IEnumerable<Tag> tags) where T : Tag => tags.Any(t => t.GetType() == typeof(T));
 
         /// <summary> 特定の種類のタグだけ抽出する </summary>
-        public static List<T> GetTags<T>(this IEnumerable<Tag> tags) where T : Tag => tags.Select(t => t as T).Where(t => t != null).ToList();
+        public static IEnumerable<T> GetTags<T>(this IEnumerable<Tag> tags) where T : Tag => tags.OfType<T>().NotNull();
 
         /// <summary> 攻撃のタグかどうか </summary>
         public static bool IsAttack(this Unit unit, Attack type)
@@ -39,10 +39,7 @@ namespace LHTRPG
 
         public override string ToString() { return "[" + Name + "]"; }
 
-        /// <summary> Unitへの参照 </summary>
-        public Unit Unit { get; set; } = null;
-
-        public Tag(string name) { Name = name; }
+        public Tag(string name) => Name = name;
 
         public override bool Equals(object obj)
         {
@@ -143,7 +140,7 @@ namespace LHTRPG
         public TagStatusType Type { get; }
 
         /// <summary> 数値 </summary>
-        public virtual int Value { get; protected set; }
+        public virtual int Value { get; set; }
 
         /// <summary> 重複存在可能かどうか </summary>
         public override bool IsCanOverlap => Type == TagStatusType.Overlap;

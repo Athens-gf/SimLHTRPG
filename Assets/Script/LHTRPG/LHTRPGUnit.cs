@@ -49,16 +49,16 @@ namespace LHTRPG
         public virtual int HP { get; set; } = 0;
 
         /// <summary> ダメージを受ける処理 </summary>
-        public abstract void Damage(int damage, DamageType type, Unit unit);
+        public abstract int Damage(int damage, DamageType type, Unit fromUnit);
 
         /// <summary> 回復する処理 </summary>
-        public abstract void Heal(int heal, Unit unit);
+        public abstract int Heal(int heal, Unit fromUnit);
 
         /// <summary> ランク </summary>
         public int Rank { get; set; }
 
         /// <summary> 基礎保持タグ </summary>
-        protected abstract IEnumerable<Tag> LTags { get; set; }
+        protected abstract IEnumerable<Tag> LTags { get; }
 
         /// <summary> 保持タグ </summary>
         public IEnumerable<Tag> Tags => LTags?.Concat(HaveStatus.OrderBy(s => (int)s.Status).Select(s => s as Tag)) ?? new List<Tag>();
@@ -66,7 +66,7 @@ namespace LHTRPG
         /// <summary> タグ文字列化 </summary>
         public string GetTagString() => Tags.Select(t => t.ToString()).Aggregate((now, next) => now + " " + next);
 
-        public Unit(UnitType type) { Type = type; }
+        protected Unit(UnitType type) { Type = type; }
 
         /// <summary> 属性タグ一覧 </summary>
         public IEnumerable<TagElement> Elements => Tags.GetTags<TagElement>().Distinct();
@@ -75,36 +75,112 @@ namespace LHTRPG
         public IEnumerable<TagWeapon> Weapons => Tags.GetTags<TagWeapon>().Distinct();
 
         /// <summary> ステータスタグ一覧 </summary>
-        public List<IStatusTag> HaveStatus { get; } = new List<IStatusTag>();
+        public LinkedList<IStatusTag> HaveStatus { get; } = new LinkedList<IStatusTag>();
 
-        /// <summary> 特定のステータスタグを取得 </summary>
-        public IStatusTag GetStatus(Status status, Tag targetTag = null)
-        {
-            if (targetTag != null && status != Status.WeakPoint && status != Status.Mitigation)
-                throw new System.Exception("Incorrect status.");
-            var sts = HaveStatus.Where(t => t.Status == status);
-            if (targetTag != null)
-                sts = sts.Cast<IHaveTargetStatusTag>().Where(t => t.Target == targetTag).Cast<IStatusTag>();
-            return sts.Any() ? sts.First() : TagStatus.Create(this, status);
-        }
-
-        /// <summary> 特定のステータスタグをキャストして取得 </summary>
-        public T GetStatus<T>(Status status, Tag targetTag = null) where T : Tag, IStatusTag => GetStatus(status, targetTag) as T;
-
-        /// <summary> 特定のステータスタグの一覧を取得 </summary>
-        public IEnumerable<IStatusTag> GetStatusList(Status status, Tag target = null)
+        /// <summary> 特定のステータスタグの一覧をNodeで取得 </summary>
+        private IEnumerable<LinkedListNode<IStatusTag>> GetStatusNodeList(Status status, Tag target = null)
         {
             if (target != null && status != Status.WeakPoint && status != Status.Mitigation)
                 throw new Exception("Incorrect status.");
-            var sts = HaveStatus.Where(t => t.Status == status);
-            if (target != null)
-                sts = sts.Cast<IHaveTargetStatusTag>().Where(t => t.Target == target).Cast<IStatusTag>();
-            return sts.Any() ? sts.ToList() : new List<IStatusTag>() { TagStatus.Create(this, status) };
+            var sts = HaveStatus.EnumerateNodes()
+                .Where(x => x.Value.Status == status);
+            if (status == Status.WeakPoint || status == Status.Mitigation)
+                sts = sts.Where(x => (x.Value as TagStatusTarget)?.Target == target);
+            return sts;
         }
+
+        /// <summary> 特定のステータスタグの一覧を取得 </summary>
+        public IEnumerable<IStatusTag> GetStatusList(Status status, Tag target = null)
+            => GetStatusNodeList(status, target).Select(x => x.Value);
 
         /// <summary> 特定のステータスタグの一覧をキャストして取得 </summary>
         public IEnumerable<T> GetStatusList<T>(Status status, Tag target = null) where T : Tag, IStatusTag
-            => GetStatusList(status, target).Cast<T>();
+            => GetStatusNodeList(status, target).Select(x => x.Value).Cast<T>();
+
+        /// <summary> 特定のステータスタグが存在するかどうか </summary>
+        public bool IsExistStatus(Status status, Tag target = null) => GetStatusNodeList(status, target).Any();
+
+        /// <summary> 特定のステータスタグをNodeで取得 </summary>
+        private LinkedListNode<IStatusTag> GetStatusNode(Status status, Tag target = null) => GetStatusNodeList(status, target).FirstOrDefault();
+
+        /// <summary> 特定のステータスタグを取得 </summary>
+        public IStatusTag GetStatus(Status status, Tag target = null) => GetStatusNode(status, target)?.Value;
+
+        /// <summary> 特定のステータスタグをキャストして取得 </summary>
+        public T GetStatus<T>(Status status, Tag target = null) where T : Tag, IStatusTag => GetStatus(status, target) as T;
+
+        /// <summary> ステータスを与える </summary>
+        /// <param name="status">ステータス種別</param>
+        /// <param name="value">数値を持つステータスならその数値</param>
+        /// <param name="target">軽減・弱点の対象</param>
+        public void GiveStatus(Status status, int value = 0, Tag target = null)
+        {
+            if (status.HasValue())
+            {
+                if (IsExistStatus(status, target))
+                // 既に同じステータスを持っている場合
+                {
+                    var tag = GetStatus<TagStatusValue>(status, target);
+                    switch (tag.Type)
+                    {
+                        // 加算タイプ
+                        case TagStatusType.Add:
+                            tag.Value += value;
+                            break;
+                        // 大きい方優先タイプ
+                        case TagStatusType.Max:
+                            tag.Value = Math.Max(tag.Value, value);
+                            break;
+                        // 重複可能タイプ
+                        case TagStatusType.Overlap:
+                            tag = TagStatus.MakeStatus(status, target) as TagStatusValue;
+                            tag.Value = value;
+                            HaveStatus.AddLast(tag);
+                            break;
+                        default:
+                            throw new Exception("TagStatusValue Type is incorrect.");
+                    }
+                }
+                else
+                {
+                    var tag = TagStatus.MakeStatus(status, target) as TagStatusValue;
+                    tag.Value = value;
+                    HaveStatus.AddLast(tag);
+                }
+            }
+            else if (!IsExistStatus(status))
+                HaveStatus.AddLast(TagStatus.MakeStatus(status, null, IsCharacter));
+        }
+
+        /// <summary> ステータスを取り除く(Node指定) </summary>
+        public void RemoveStatus(LinkedListNode<IStatusTag> statusNode) => HaveStatus.Remove(statusNode);
+
+        /// <summary> ステータスを取り除く </summary>
+        /// <param name="isAll">すべて取り除くかどうか、falseの場合最初に登録されたもの</param>
+        public void RemoveStatus(Status status, Tag target = null, bool isAll = false)
+        {
+            if (isAll)
+                foreach (var node in GetStatusNodeList(status, target))
+                    RemoveStatus(node);
+            else
+                RemoveStatus(GetStatusNode(status, target));
+        }
+
+        /// <summary> ステータスの数値を変更する </summary>
+        /// <param name="change">変更関数(元数値)=>変更数値</param>
+        /// <param name="status">ステータス種別</param>
+        /// <param name="target">軽減・弱点の場合の対象タグ</param>
+        /// <param name="fillter">対象をとるFillter</param>
+        public void ChangeStatusValue(Func<int, int> change, Status status, Tag target = null,
+            Func<IEnumerable<IStatusTag>, IEnumerable<TagStatusValue>> fillter = null)
+        {
+            if (!status.HasValue())
+                throw new ArgumentException("status is incorrect. Not value tag");
+            if (fillter == null)
+                fillter = l => l.Take(1).Cast<TagStatusValue>();
+            foreach (var svt in fillter(GetStatusList(status, target)))
+                svt.Value = change(svt.Value);
+        }
     }
     #endregion
 
@@ -192,45 +268,58 @@ namespace LHTRPG
         Replace,
     }
 
+    /// <summary> 修正値の組み合わせ </summary>
     public class CorTuple<TVT, TN>
     {
         /// <summary> 種別 </summary>
         public TVT Type { get; set; }
+
         /// <summary> 発生源 </summary>
         public Unit Source { get; set; }
+
         /// <summary> 効果が有効かどうかのチェック
         /// (対象) => 判定結果 </summary>
         public Func<Character, bool> Check { get; set; } = c => true;
+
         /// <summary> 補正値
         /// (対象) => 補正値 </summary>
         public Func<Character, TN> Correct { get; set; }
     }
 
+    /// <summary> 修正値の組み合わせ(判定) </summary>
     public class CorTupleJudgement
     {
         /// <summary> 種別 </summary>
         public SkillValueType Type { get; set; }
+
         /// <summary> 発生源 </summary>
         public Unit Source { get; set; }
+
         /// <summary> 効果が有効かどうかのチェック
         /// (対象, 目標) => 判定結果 </summary>
         public Func<Character, List<Unit>, bool> Check { get; set; } = (c, t) => true;
+
         /// <summary> 補正値
         /// (対象, 目標) => 補正値 </summary>
         public Func<Character, List<Unit>, DiceNumber> Correct { get; set; }
     }
 
+    /// <summary> 修正値の組み合わせ(ダメージ) </summary>
     public class CorTupleDamage
     {
         /// <summary> 発生源 </summary>
         public Unit Source { get; set; }
+
         /// <summary> 効果が有効かどうかのチェック
         /// (対象, 目標) => 判定結果 </summary>
         public Func<Character, List<Unit>, bool> Check { get; set; } = (c, t) => true;
+
         /// <summary> 補正値
         /// (対象, 目標) => 補正値 </summary>
         public Func<Character, List<Unit>, DiceNumber> Correct { get; set; }
     }
+
+    /// <summary> 修正値のリスト </summary>
     public class CorValues<T>
     {
         public Dictionary<CorType, LinkedList<T>> Values { get; }
@@ -241,6 +330,8 @@ namespace LHTRPG
             foreach (CorType e in Enum.GetValues(typeof(CorType)))
                 Values[e] = new LinkedList<T>();
         }
+
+        public LinkedList<T> this[CorType type] => Values[type];
     }
 
     /// <summary> キャラクター(冒険者・ゲスト・エネミー)共通クラス </summary>
@@ -248,10 +339,13 @@ namespace LHTRPG
     {
         /// <summary> 数値系の修正値 </summary>
         public CorValues<CorTuple<BattleStatusType, int>> CorBattleStatus { get; } = new CorValues<CorTuple<BattleStatusType, int>>();
+
         /// <summary> 技能値の修正値 </summary>
         public CorValues<CorTuple<SkillValueType, int>> CorSkillValue { get; } = new CorValues<CorTuple<SkillValueType, int>>();
+
         /// <summary> 技能判定の修正値 </summary>
         public CorValues<CorTuple<SkillValueType, DiceNumber>> CorJudgeValue { get; } = new CorValues<CorTuple<SkillValueType, DiceNumber>>();
+
         /// <summary> ダメージロールの修正値 </summary>
         public CorValues<CorTupleDamage> CorDamageRoll { get; } = new CorValues<CorTupleDamage>();
 
@@ -267,14 +361,14 @@ namespace LHTRPG
         /// <returns>最終数値</returns>
         public virtual int GetBattleStatus(BattleStatusType type)
         {
-            if (CorBattleStatus.Values[CorType.Replace].Any(t => t.Type == type))
+            if (CorBattleStatus[CorType.Replace].Any(t => t.Type == type))
             {
-                var last = CorBattleStatus.Values[CorType.Replace].Last(t => t.Type == type);
+                var last = CorBattleStatus[CorType.Replace].Last(t => t.Type == type);
                 if (last.Check(this))
                     return last.Correct(this);
             }
             return GetBaseBattleStatus(type)
-                + CorBattleStatus.Values[CorType.AddSub].Where(t => t.Type == type && t.Check(this))
+                + CorBattleStatus[CorType.AddSub].Where(t => t.Type == type && t.Check(this))
                     .Select(t => t.Correct(this)).Sum();
         }
 
@@ -288,9 +382,9 @@ namespace LHTRPG
         /// <returns>基礎数値</returns>
         protected virtual int GetBaseSkillValue(SkillValueType type)
         {
-            if (CorSkillValue.Values[CorType.ChangeOriginal].Any(t => t.Type == type))
+            if (CorSkillValue[CorType.ChangeOriginal].Any(t => t.Type == type))
             {
-                var lastCSV = CorSkillValue.Values[CorType.ChangeOriginal].Last(t => t.Type == type);
+                var lastCSV = CorSkillValue[CorType.ChangeOriginal].Last(t => t.Type == type);
                 if (lastCSV.Check(this))
                     return lastCSV.Correct(this);
             }
@@ -313,7 +407,7 @@ namespace LHTRPG
                 case SkillValueType.Hit:
                     return Mathf.Max(GetAbility(AbilityType.STR), GetAbility(AbilityType.DEX), GetAbility(AbilityType.POW), GetAbility(AbilityType.INT));
                 default:
-                    throw new Exception("The argument is incorrect.");
+                    throw new ArgumentOutOfRangeException();
             }
         }
 
@@ -322,14 +416,14 @@ namespace LHTRPG
         /// <returns>最終数値</returns>
         public virtual int GetSkillValue(SkillValueType type)
         {
-            if (CorSkillValue.Values[CorType.Replace].Any(t => t.Type == type))
+            if (CorSkillValue[CorType.Replace].Any(t => t.Type == type))
             {
-                var last = CorSkillValue.Values[CorType.Replace].Last(t => t.Type == type);
+                var last = CorSkillValue[CorType.Replace].Last(t => t.Type == type);
                 if (last.Check(this))
                     return last.Correct(this);
             }
             return GetBaseSkillValue(type)
-                + CorSkillValue.Values[CorType.AddSub].Where(t => t.Type == type && t.Check(this))
+                + CorSkillValue[CorType.AddSub].Where(t => t.Type == type && t.Check(this))
                     .Select(t => t.Correct(this)).Sum();
         }
 
@@ -338,14 +432,14 @@ namespace LHTRPG
         /// <returns>最終数値</returns>
         public virtual DiceNumber GetJudgeValue(SkillValueType type)
         {
-            if (CorJudgeValue.Values[CorType.Replace].Any(t => t.Type == type))
+            if (CorJudgeValue[CorType.Replace].Any(t => t.Type == type))
             {
-                var last = CorJudgeValue.Values[CorType.Replace].Last(t => t.Type == type);
+                var last = CorJudgeValue[CorType.Replace].Last(t => t.Type == type);
                 if (last.Check(this))
                     return last.Correct(this);
             }
             return new DiceNumber(2, GetSkillValue(type))
-                + CorJudgeValue.Values[CorType.AddSub].Where(t => t.Type == type && t.Check(this))
+                + CorJudgeValue[CorType.AddSub].Where(t => t.Type == type && t.Check(this))
                     .Select(t => t.Correct(this))
                     .Aggregate((t0, t1) => t0 + t1);
         }

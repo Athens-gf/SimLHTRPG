@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Linq;
 using System;
-using UnityEngine;
 using AthensUtility;
 using EnumExtension;
 
@@ -12,7 +11,7 @@ namespace LHTRPG
     {
         /// <summary> ダイス結果を返す </summary>
         /// <returns>1~6の乱数</returns>
-        public static int GetDice() { return UnityEngine.Random.Range(1, 7); }
+        public static int GetDice() => UnityEngine.Random.Range(1, 7);
 
         /// <summary> 複数個のダイス結果を返す </summary>
         /// <param name="num">ダイス個数</param>
@@ -21,7 +20,7 @@ namespace LHTRPG
 
         /// <summary> コンテナの中から1つランダムに返す </summary>
         /// <returns>ランダムに選ばれた要素</returns>
-        public static T GetRand<T>(this IEnumerable<T> list) { return list.ElementAt(UnityEngine.Random.Range(0, list.Count())); }
+        public static T GetRand<T>(this IEnumerable<T> list) => list.ElementAt(UnityEngine.Random.Range(0, list.Count()));
     }
 
     [DebuggerDisplay("{ToString()}")]
@@ -29,10 +28,10 @@ namespace LHTRPG
     public class DiceNumber
     {
         /// <summary> ダイス個数 </summary>
-        public int Dice { get; private set; }
+        public int Dice { get; }
 
         /// <summary> 固定値 </summary>
-        public int FixedNumber { get; private set; }
+        public int FixedNumber { get; }
 
         /// <summary> ダイスが使われているかどうか </summary>
         public bool IsUseDice => Dice != 0;
@@ -85,7 +84,7 @@ namespace LHTRPG
         public bool IsCritical(Unit unit) => !IsFumble(unit) && Dices.Count(i => i >= 6) >= 2;
 
         /// <summary> ファンブルかどうか </summary>
-        public bool IsFumble(Unit unit) => unit.GetStatus(Status.Prosperity).IsExist ? Dices.Any(i => i <= 1) : Dices.All(i => i <= 1);
+        public bool IsFumble(Unit unit) => unit.IsExistStatus(Status.Prosperity) ? Dices.Any(i => i <= 1) : Dices.All(i => i <= 1);
 
         public DiceResult(List<int> dices) { Dices = dices.AsReadOnly(); }
     }

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System;
 using EnumExtension;
 using KM.Unity;
 using AthensUtility;
@@ -8,10 +9,10 @@ using AthensUtility;
 
 namespace LHTRPG
 {
-    using Ability = Dictionary<AbilityType, int>;
-
     public static partial class LHTRPGBase
     {
+        /// <summary> メイン職業からそれに対応したアーキ職業を取得する </summary>
+        /// <param name="mainJob">メイン職業</param>
         public static ArchetypeJob GetArchetype(this MainJob mainJob)
         {
             switch (mainJob)
@@ -33,12 +34,9 @@ namespace LHTRPG
                 case MainJob.Enchanter:
                     return ArchetypeJob.Warrior;
                 default:
-                    throw new System.ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException();
             }
         }
-
-        public static TagRace GetTag(this Race race, Unit unit = null) { return new TagRace(race) { Unit = unit }; }
-        public static TagMainJob GetTag(this MainJob mj, Unit unit = null) { return new TagMainJob(mj) { Unit = unit }; }
     }
 
     public enum Sex
@@ -47,6 +45,7 @@ namespace LHTRPG
         [EnumText("女性")] Female,
     }
 
+    /// <summary> 性別タグ </summary>
     public class TagSex : Tag<Sex> { public TagSex(Sex type) : base(type) { } }
 
     public enum Race
@@ -61,6 +60,7 @@ namespace LHTRPG
         [EnumText("法儀族")] Pattern,
     }
 
+    /// <summary> 種族タグ </summary>
     public class TagRace : Tag<Race> { public TagRace(Race type) : base(type) { } }
 
     public enum ArchetypeJob
@@ -91,115 +91,194 @@ namespace LHTRPG
         [EnumText("付与術師")] Enchanter,
     }
 
+    /// <summary> メイン職業タグ </summary>
     public class TagMainJob : Tag<MainJob> { public TagMainJob(MainJob type) : base(type) { } }
 
+    /// <summary> サブ職業タグ </summary>
     public class TagSubJob : Tag
     {
+        /// <summary> 登録サブ職業一覧 </summary>
         public static ReadOnlyCollection<string> SubJobs { get; }
+
         static TagSubJob()
         {
             var csv = new CSVReader(@"Data/SubJobs");
             var l = new List<string>();
-            for (int i = 0; i < csv.Row; i++) l.Add(csv[i][0]);
+            for (int i = 0; i < csv.Row; i++)
+                l.Add(csv[i][0]);
             SubJobs = new ReadOnlyCollection<string>(l);
         }
-        public static TagSubJob GetRand() { return new TagSubJob(SubJobs.GetRand()); }
 
-        public string BaseSubJob { get; private set; }
+        /// <summary> サブ職業乱数取得 </summary>
+        public static TagSubJob GetRand() => new TagSubJob(SubJobs.GetRand());
+
+        /// <summary> 一覧にないサブ職業を登録するとき、処理のベースになる職業 </summary>
+        public string BaseSubJob { get; }
+
         public TagSubJob(string name) : base(name) { BaseSubJob = name; }
         public TagSubJob(string name, string @base) : base(name) { BaseSubJob = @base; }
     }
 
-    public struct Creeds
+
+    /// <summary> クリード(掟) </summary>
+    public struct Creed
     {
+        /// <summary> クリード名 </summary>
         public string Name { get; set; }
-        public string Creed { get; set; }
+
+        /// <summary> 説明 </summary>
+        public string Explanation { get; set; }
+
+        /// <summary> 要約 </summary>
+        public string Summary { get; set; }
+
+        /// <summary> 人物タグ種別 </summary>
         public Person Tag { get; set; }
     }
 
+    /// <summary> ガイディングクリード </summary>
     public class GuidingCreed
     {
-        public static ReadOnlyCollection<Creeds> Creeds { get; }
-        public static List<string> CreedNames { get { return Creeds.Select(c => c.Name).ToList(); } }
+        /// <summary> 登録ガイディングクリード </summary>
+        public static ReadOnlyCollection<Creed> Creeds { get; }
+
+        /// <summary> ガイディングクリード名一覧 </summary>
+        public static List<string> CreedNames => Creeds.Select(c => c.Name).ToList();
+
         static GuidingCreed()
         {
             var csv = new CSVReader(@"Data/Creed");
-            var lb = new List<Creeds>();
+            var lb = new List<Creed>();
             foreach (var line in csv.Line())
-                lb.Add(new Creeds { Name = line[0], Creed = line[1], Tag = line[2].GetEnumByText<Person>() });
-            Creeds = new ReadOnlyCollection<Creeds>(lb);
+                lb.Add(new Creed
+                {
+                    Name = line[0],
+                    Explanation = line[1],
+                    Summary = line[2],
+                    Tag = line[3].GetEnumByText<Person>()
+                });
+            Creeds = new ReadOnlyCollection<Creed>(lb);
         }
-        public static GuidingCreed GetRand(Unit unit) { return new GuidingCreed(unit, Creeds.GetRand()); }
 
+        /// <summary> ランダマイザ </summary>
+        public static GuidingCreed GetRand() { return new GuidingCreed(Creeds.GetRand()); }
+
+        /// <summary> ユニット </summary>
         public Unit Unit { get; set; }
-        public Creeds Creed { get; set; }
+
+        /// <summary> 選択ガイディングクリード </summary>
+        public Creed Creed { get; set; }
+
+        /// <summary> 人物タグ </summary>
         public TagPerson Tag { get; set; }
 
-        public GuidingCreed(Unit unit, string creedName) : this(unit, Creeds.First(c => c.Name == creedName)) { }
-        public GuidingCreed(Unit unit, Creeds creed) { Creed = creed; Tag = new TagPerson(Creed.Tag) { Unit = unit }; }
+        public GuidingCreed(string creedName) : this(Creeds.First(c => c.Name == creedName)) { }
+        public GuidingCreed(Creed creed) { Creed = creed; Tag = new TagPerson(Creed.Tag); }
     }
 
+    /// <summary> パーソナルファクターインターフェース </summary>
     public interface IHumanCharacter
     {
+        /// <summary> 冒険者かどうか </summary>
         bool IsAdventurer { get; }
+
+        /// <summary> 名前 </summary>
         string Name { get; set; }
+
+        /// <summary> 性別 </summary>
         TagSex Sex { get; set; }
+
+        /// <summary> レベル </summary>
         int Level { get; set; }
+
+        /// <summary> ガイディングクリード </summary>
         GuidingCreed GuidingCreed { get; set; }
+
+        /// <summary> 種族 </summary>
         TagRace Race { get; set; }
+
+        /// <summary> サブ職業 </summary>
         TagSubJob SubJob { get; set; }
+
+        /// <summary> その他のタグ </summary>
         List<Tag> OtherTags { get; }
     }
 
+    /// <summary> エキストラ(NPC、ルール城のデータを一切持たない演出上のキャラクター) </summary>
     public class Extra : Unit, IHumanCharacter
     {
         public Extra() : base(UnitType.Extra) { }
 
+        /// <summary> 冒険者かどうか </summary>
         public bool IsAdventurer { get; set; }
+
+        /// <summary> 名前 </summary>
         public string Name { get; set; }
-        private TagSex sex;
-        public TagSex Sex { get => sex; set => sex = new TagSex(value.Type) { Unit = this }; }
+
+        /// <summary> 性別 </summary>
+        public TagSex Sex { get; set; }
+
         public int Level { get; set; }
-        private GuidingCreed guidingCreed;
-        public GuidingCreed GuidingCreed { get { return guidingCreed; } set { guidingCreed = new GuidingCreed(this, value.Creed); } }
-        private TagRace race;
-        public TagRace Race { get => race; set => race = new TagRace(value.Type) { Unit = this }; }
-        private TagSubJob subJob;
-        public TagSubJob SubJob { get { return subJob; } set { subJob = new TagSubJob(value.Name, value.BaseSubJob) { Unit = this }; } }
+
+        /// <summary> ガイディングクリード </summary>
+        public GuidingCreed GuidingCreed { get; set; }
+
+        /// <summary> 種族 </summary>
+        public TagRace Race { get; set; }
+
+        /// <summary> サブ職業 </summary>
+        public TagSubJob SubJob { get; set; }
+
+        /// <summary> その他のタグ </summary>
         public List<Tag> OtherTags { get; } = new List<Tag>();
 
         protected override IEnumerable<Tag> LTags
         {
-            get => new Tag(IsAdventurer ? "冒険者" : "大地人") { Unit = this }.MakeCollection()
+            get => new Tag(IsAdventurer ? "冒険者" : "大地人").MakeCollection()
                     .Append(Sex)
                     .Append(Race)
                     .Append(SubJob)
                     .Append(GuidingCreed.Tag)
                     .Concat(OtherTags)
                     .Where(t => t != null);
-            set { }
         }
 
-        public override void Damage(int damage, DamageType type, Unit unit) { }
+        /// <summary> ダメージを受ける処理 </summary>
+        public override int Damage(int damage, DamageType type, Unit fromUnit) => 0;
 
-        public override void Heal(int heal, Unit unit) { }
+        /// <summary> 回復する処理 </summary>
+        public override int Heal(int heal, Unit fromUnit) => 0;
     }
 
+    /// <summary> ゲスト(NPC、能力値やHPなどのデータを持つキャラクター) </summary>
     public class Guest : Adventurer
     {
+        /// <summary> 冒険者かどうか </summary>
         public override bool IsAdventurer { get; set; }
+
         public Guest() : base(UnitType.Guest) { }
     }
 
+    /// <summary> 冒険者 </summary>
     public class Adventurer : Character, IHumanCharacter
     {
+        /// <summary> 基礎能力値データ </summary>
         public struct Statust
         {
-            public Ability Ability { get; set; }
+            /// <summary> 能力値 </summary>
+            public Dictionary<AbilityType, int> Ability { get; set; }
+
+            /// <summary> 初期HP </summary>
             public int HP { get; set; }
+
+            /// <summary> HP成長、または、初期因果力 </summary>
             public int Other { get; set; }
         }
+
+        /// <summary> メインジョブの基礎データ、OtherはHP成長 </summary>
         public static Dictionary<MainJob, Statust> StaMainJobs { get; }
+
+        /// <summary> 種族の基礎データ、Otherは初期因果力 </summary>
         public static Dictionary<Race, Statust> StaRaces { get; }
 
         static Adventurer()
@@ -213,7 +292,7 @@ namespace LHTRPG
 
                     stas[line[0].GetEnumByText<T>()] = new Statust
                     {
-                        Ability = new Ability
+                        Ability = new Dictionary<AbilityType, int>
                         {
                             { AbilityType.STR, int.Parse(line[1]) },
                             { AbilityType.DEX, int.Parse(line[2]) },
@@ -229,121 +308,178 @@ namespace LHTRPG
             func(StaRaces, @"Data/StatusRace");
         }
 
-        public virtual bool IsAdventurer { get { return true; } set { } }
+        /// <summary> 冒険者かどうか </summary>
+        public virtual bool IsAdventurer { get => true; set { } }
+
+        /// <summary> 名前 </summary>
         public string Name { get; set; }
-        private Sex sex;
-        public Sex Sex { get { return sex; } set { sex = value.Type != Sex.Sex.Other ? new Sex(this, value.Type == Sex.Sex.Male) : new Sex(this, value.OtherName); } }
+
+        /// <summary> 性別 </summary>
+        public TagSex Sex { get; set; }
+
+        /// <summary> レベル </summary>
         public int Level { get; set; }
-        private GuidingCreed guidingCreed;
-        public GuidingCreed GuidingCreed { get { return guidingCreed; } set { guidingCreed = new GuidingCreed(this, value.Creed); } }
 
-        public Race Race { get; set; }
-        private SubJob subJob;
-        public SubJob SubJob { get { return subJob; } set { subJob = new SubJob(this, value.Name, value.BaseSubJob); } }
-        public List<SubJob> HistorySubJob { get; private set; }
+        /// <summary> ガイディングクリード </summary>
+        public GuidingCreed GuidingCreed { get; set; }
 
-        protected override List<Tag> LTags
+        /// <summary> 種族 </summary>
+        public TagRace Race { get; set; }
+
+        /// <summary> サブ職業 </summary>
+        public TagSubJob SubJob { get; set; }
+
+        /// <summary> 今までなったことのあるサブ職業の履歴 </summary>
+        public List<TagSubJob> HistorySubJob { get; } = new List<TagSubJob>();
+
+        protected override IEnumerable<Tag> LTags
         {
             get
             {
-                return (new Tag(this, IsAdventurer ? "冒険者" : "大地人")).MakeCollection().Append(Sex).Append(Race.GetTag(this)).Append(MainJob.GetTag(this))
-                    .Append(SubJob).Append(Union).Append(GuidingCreed.Tag).Append(OtherTags).Where(t => t != null).ToList();
+                return new Tag(IsAdventurer ? "冒険者" : "大地人").MakeCollection()
+                    .Append(Sex)
+                    .Append(Race)
+                    .Append(MainJob)
+                    .Append(SubJob)
+                    .Append(Union)
+                    .Append(GuidingCreed.Tag)
+                    .Concat(OtherTags)
+                    .Where(t => t != null);
             }
-            set { }
         }
 
-        public List<Character> Connection { get; private set; }
+        /// <summary> コネクション </summary>
+        public List<Character> Connection { get; } = new List<Character>();
+
+        /// <summary> ユニオン </summary>
         public Tag Union { get; set; }
-        public List<Tag> OtherTags { get; private set; }
 
-        public ArchetypeJob ArchetypeJob { get { return MainJob.GetArchetype(); } }
-        public MainJob MainJob { get; set; }
+        /// <summary> その他のタグ </summary>
+        public List<Tag> OtherTags { get; } = new List<Tag>();
 
-        public Statust StaMainJob { get { return StaMainJobs[MainJob]; } }
-        public Statust StaRace { get { return StaRaces[Race]; } }
-        public Ability AbiHuman { get; set; }
-        public Ability AbiBonus { get; set; }
-        public int SumAbiBonus { get { return AbiBonus.Sum(a => a.Value); } }
+        /// <summary> アーキ職業 </summary>
+        public ArchetypeJob ArchetypeJob => MainJob.Type.GetArchetype();
 
-        protected Adventurer(UnitType type) : base(type)
+        /// <summary> メイン職業 </summary>
+        public TagMainJob MainJob { get; set; }
+
+        /// <summary> メイン職業の基礎値 </summary>
+        public Statust StaMainJob => StaMainJobs[MainJob.Type];
+
+        /// <summary> 種族の基礎値 </summary>
+        public Statust StaRace => StaRaces[Race.Type];
+
+        /// <summary> ボーナスポイント振り割 </summary>
+        public Dictionary<AbilityType, int> AbiBonus { get; }
+            = EnumExtension.EnumExtension.GetEnumerable<AbilityType>().ToDictionary(t => t, _ => 0);
+
+        /// <summary> ボーナスポイント合計値 </summary>
+        public int SumAbiBonus => AbiBonus.Sum(a => a.Value);
+
+        protected Adventurer(UnitType type) : base(type) { }
+
+        public Adventurer() : base(UnitType.Adventurer) { }
+
+        /// <summary> 能力値を取得する関数 </summary>
+        /// <param name="ability">能力値種類</param>
+        public int GetPreBaseAbility(AbilityType ability)
+            => StaMainJob.Ability[ability] + StaRace.Ability[ability] + AbiBonus[ability];
+
+        /// <summary> 基礎能力値を取得する関数 </summary>
+        /// <param name="ability">能力値種類</param>
+        private int GetBaseAbility(AbilityType ability) => GetPreBaseAbility(ability) + Rank - 1;
+
+        /// <summary> 数値系の基礎数値を取得する関数 </summary>
+        /// <param name="type">種類</param>
+        /// <returns>基礎数値</returns>
+        protected override int GetBaseBattleStatus(BattleStatusType type)
         {
-            Connection = new List<Character>();
-            HistorySubJob = new List<SubJob>();
-            Union = null;
-            OtherTags = new List<Tag>();
-            AbiBonus = new Ability { { Ability.STR, 0 }, { Ability.DEX, 0 }, { Ability.POW, 0 }, { Ability.INT, 0 } };
-            AbiHuman = new Ability { { Ability.STR, 0 }, { Ability.DEX, 0 }, { Ability.POW, 0 }, { Ability.INT, 0 } };
-        }
-
-        public Adventurer() : this(Type.Adventurer) { }
-
-        private int GetBaseAbility(Ability ba) { return StaMainJob.Ability[ba] + StaRace.Ability[ba] + AbiHuman[ba] + AbiBonus[ba] + Rank - 1; }
-
-        protected override int GetBaseValue(Value value)
-        {
-            if (FuncReplaceBaseValues[value] != null) return FuncReplaceBaseValues[value]();
-            switch (value)
+            if (CorBattleStatus[CorType.ChangeOriginal].Any(t => t.Type == type))
             {
-                case Value.BaseSTR:
-                    return GetBaseAbility(Ability.STR);
-                case Value.STR:
-                    return GetValue(Value.BaseSTR) / 3;
-                case Value.BaseDEX:
-                    return GetBaseAbility(Ability.DEX);
-                case Value.DEX:
-                    return GetValue(Value.BaseDEX) / 3;
-                case Value.BasePOW:
-                    return GetBaseAbility(Ability.POW);
-                case Value.POW:
-                    return GetValue(Value.BasePOW) / 3;
-                case Value.BaseINT:
-                    return GetBaseAbility(Ability.INT);
-                case Value.INT:
-                    return GetValue(Value.BaseINT) / 3;
-                case Value.MaxHP:
+                var last = CorBattleStatus[CorType.Replace].Last(t => t.Type == type);
+                if (last.Check(this))
+                    return last.Correct(this);
+            }
+            switch (type)
+            {
+                case BattleStatusType.STRBase:
+                    return GetBaseAbility(AbilityType.STR);
+                case BattleStatusType.STR:
+                    return GetBattleStatus(BattleStatusType.STRBase) / 3;
+                case BattleStatusType.DEXBase:
+                    return GetBaseAbility(AbilityType.DEX);
+                case BattleStatusType.DEX:
+                    return GetBattleStatus(BattleStatusType.DEXBase) / 3;
+                case BattleStatusType.POWBase:
+                    return GetBaseAbility(AbilityType.POW);
+                case BattleStatusType.POW:
+                    return GetBattleStatus(BattleStatusType.POWBase) / 3;
+                case BattleStatusType.INTBase:
+                    return GetBaseAbility(AbilityType.INT);
+                case BattleStatusType.INT:
+                    return GetBattleStatus(BattleStatusType.INTBase) / 3;
+                case BattleStatusType.MaxHP:
                     return StaMainJob.HP + StaRace.HP + (Rank - 1) * StaMainJob.Other;
-                case Value.StartFate:
+                case BattleStatusType.StartFate:
                     return StaRace.Other;
-                case Value.Attack:
+                case BattleStatusType.Attack:
                     return 0;
-                case Value.Magic:
+                case BattleStatusType.Magic:
                     return 0;
-                case Value.Recovary:
+                case BattleStatusType.Recovary:
                     return 0;
-                case Value.PhyDefense:
-                    return GetValue(Value.STR) * 2;
-                case Value.MagDefense:
-                    return GetValue(Value.INT) * 2;
-                case Value.Behavior:
-                    return GetValue(Value.STR) + GetValue(Value.INT);
-                case Value.MovePoint:
+                case BattleStatusType.PhyDefense:
+                    return GetBattleStatus(BattleStatusType.STR) * 2;
+                case BattleStatusType.MagDefense:
+                    return GetBattleStatus(BattleStatusType.INT) * 2;
+                case BattleStatusType.Behavior:
+                    return GetBattleStatus(BattleStatusType.STR) + GetBattleStatus(BattleStatusType.INT);
+                case BattleStatusType.MovePoint:
                     return 2;
-                default:
-                    return 0;
             }
+            throw new ArgumentOutOfRangeException();
         }
 
-        public override int GetValue(Value value)
+        /// <summary> 能力値を取得する </summary>
+        /// <param name="ability">能力種類</param>
+        /// <returns>能力値</returns>
+        public override int GetAbility(AbilityType ability)
         {
-            if (FuncReplaceValues[value] != null) return FuncReplaceValues[value]();
-            return GetBaseValue(value) + FuncBuffValues[value].Sum();
-        }
-
-        public override int GetAbility(Ability abi)
-        {
-            switch (abi)
+            switch (ability)
             {
-                case Ability.STR:
-                    return GetValue(Value.STR);
-                case Ability.DEX:
-                    return GetValue(Value.DEX);
-                case Ability.POW:
-                    return GetValue(Value.POW);
-                case Ability.INT:
-                    return GetValue(Value.INT);
-                default:
-                    return 0;
+                case AbilityType.STR:
+                    return GetBattleStatus(BattleStatusType.STR);
+                case AbilityType.DEX:
+                    return GetBattleStatus(BattleStatusType.DEX);
+                case AbilityType.POW:
+                    return GetBattleStatus(BattleStatusType.POW);
+                case AbilityType.INT:
+                    return GetBattleStatus(BattleStatusType.INT);
             }
+            throw new ArgumentOutOfRangeException();
+        }
+
+        /// <summary> ダメージを受ける処理 </summary>
+        public override int Damage(int damage, DamageType type, Unit fromUnit)
+        {
+            switch (type)
+            {
+                case DamageType.Physics:
+                    break;
+                case DamageType.Magic:
+                    break;
+                case DamageType.Through:
+                    break;
+                case DamageType.Directly:
+                    break;
+            }
+            throw new ArgumentOutOfRangeException();
+        }
+
+        /// <summary> 回復する処理 </summary>
+        public override int Heal(int heal, Unit fromUnit)
+        {
+            return heal;
         }
     }
 }

@@ -1,5 +1,5 @@
-﻿using System.Linq;
-using UnityEngine;
+﻿using System;
+using System.Linq;
 using EnumExtension;
 
 namespace LHTRPG
@@ -34,29 +34,30 @@ namespace LHTRPG
             }
         }
 
+        /// <summary> そのステータスが数値を持つものかどうかを判定する </summary>
+        /// <param name="status">ステータス種類</param>
+        public static bool HasValue(this Status status)
+        {
+            switch (status)
+            {
+                case Status.Fatigue:
+                case Status.WeakPoint:
+                case Status.Weakness:
+                case Status.Pursuit:
+                case Status.Regeneration:
+                case Status.Mitigation:
+                case Status.Barrier:
+                    return true;
+            }
+            return false;
+        }
+
         public static readonly string TagNameNearbyAttack = "至近距離からの攻撃";
         public static Tag TagNearbyAttack => new Tag(TagNameNearbyAttack);
+
         public static readonly string TagNameNotNearbyAttack = "至近以外からの攻撃";
         public static Tag TagNotNearbyAttack => new Tag(TagNameNotNearbyAttack);
 
-        /// <summary> 軽減・弱点が適用されるかどうか </summary>
-        /// <param name="tag">軽減・弱点タグ</param>
-        /// <param name="unit">軽減=>攻撃者、弱点=>攻撃対象</param>
-        /// <returns>適用されるならTrue</returns>
-        public static bool IsApplication<T>(this T tag, Unit unit) where T : TagStatusValue, IHaveTargetStatusTag
-        {
-            var targetName = tag.Target.Name;
-            if (targetName == TagNameNearbyAttack || targetName == TagNameNotNearbyAttack)
-            {
-                if (tag.Unit?.Session.CurrentScene is SceneBattle)
-                {
-                    var pos = (tag.Unit.Session.CurrentScene as SceneBattle).Positions;
-                    return targetName == TagNameNearbyAttack ? pos[tag.Unit] == pos[unit] : pos[tag.Unit] != pos[unit];
-                }
-                return false;
-            }
-            return unit.Tags.Contains(tag.Target);
-        }
     }
 
     public enum StatusCategory
@@ -119,6 +120,9 @@ namespace LHTRPG
         [EnumText("行動")] Behavior,
         /// <summary> ヘイト </summary>
         [EnumText("ヘイト")] Hate,
+        // その他
+        /// <summary> その他 </summary>
+        [EnumText("その他")] Other,
     }
 
     public enum TagStatusType
@@ -136,160 +140,243 @@ namespace LHTRPG
     /// <summary> ステータスタグ共通インターフェース </summary>
     public interface IStatusTag
     {
-        /// <summary> 重複可能かどうか </summary>
+        /// <summary> ステータス種別 </summary>
         Status Status { get; }
-        /// <summary> 存在しているかどうか </summary>
-        bool IsExist { get; }
-        /// <summary>  </summary>
-        void Recieve(int value = 0);
-        /// <summary>  </summary>
-        void Remove();
-    }
 
-    /// <summary> ステータスタグ共通インターフェース </summary>
-    public interface IHaveTargetStatusTag
-    {
-        /// <summary> 対象 </summary>
-        Tag Target { get; }
+        /// <summary> ステータスカテゴリー </summary>
+        StatusCategory Category { get; }
     }
 
     /// <summary> (数量を持たない)ステータスタグ </summary>
     public class TagStatus : Tag, IStatusTag
     {
-        public TagStatus(Unit unit, Status status) : base(status.GetText()) { Status = status; Unit = unit; }
-
+        /// <summary> ステータス種別 </summary>
         public Status Status { get; }
 
-        public bool IsExist => Unit.HaveStatus.Any(s => s == this);
+        /// <summary> ステータスカテゴリー </summary>
+        public virtual StatusCategory Category => Status.GetCategory();
 
-        public void Remove() { Unit.HaveStatus.Remove(this); }
+        public TagStatus(Status status) : base(status.GetText()) => Status = status;
 
-        public void Recieve(int value = 0) { Unit.HaveStatus.Add(this); }
+        protected TagStatus(string name) : base(name) => Status = Status.Other;
 
-        /// <summary> タグ生成関数 </summary>
-        public static IStatusTag Create(Unit unit, Status status, Tag targetTag = null)
+        public enum Statusaa
+        {
+            // その他
+            /// <summary> その他 </summary>
+            [EnumText("その他")] Other,
+        }
+
+        // ライフステータス
+        /// <summary> 疲労 </summary>
+        public static TagStatusValue Fatigue => new TagStatusValue(TagStatusType.Add, Status.Fatigue);
+        /// <summary> 弱点 </summary>
+        public static TagStatusTarget WeakPoint(Tag target) => new TagStatusTarget(TagStatusType.Overlap, Status.WeakPoint, target);
+        /// <summary> 戦闘不能 </summary>
+        public static TagStatus UnableFight => new TagStatus(Status.UnableFight);
+        /// <summary> 死亡 </summary>
+        public static TagStatus Death => new TagStatus(Status.Death);
+
+        // バッドステータス
+        /// <summary> 萎縮 </summary>
+        public static TagStatus Atrophy => new TagStatus(Status.Atrophy);
+        /// <summary> 放心 </summary>
+        public static TagStatus Emptiness => new TagStatus(Status.Emptiness);
+        /// <summary> 硬直 </summary>
+        public static TagStatus Stiffness => new TagStatus(Status.Stiffness);
+        /// <summary> 惑乱 </summary>
+        public static TagStatus Scare => new TagStatus(Status.Scare);
+        /// <summary> 衰弱 </summary>
+        public static TagStatusValue Weakness => new TagStatusValue(TagStatusType.Max, Status.Weakness);
+        /// <summary> 追撃 </summary>
+        public static TagStatusValue Pursuit => new TagStatusValue(TagStatusType.Overlap, Status.Pursuit);
+        /// <summary> 重篤 </summary>
+        public static TagStatus Serious => new TagStatus(Status.Serious);
+        /// <summary> 慢心 </summary>
+        public static TagStatus Prosperity => new TagStatus(Status.Prosperity);
+
+        // コンバットステータス
+        /// <summary> 再生 </summary>
+        public static TagStatusValue Regeneration => new TagStatusValue(TagStatusType.Max, Status.Regeneration);
+        /// <summary> 軽減 </summary>
+        public static TagStatusTarget Mitigation(Tag target) => new TagStatusTarget(TagStatusType.Overlap, Status.Mitigation, target);
+        /// <summary> 障壁 </summary>
+        public static TagStatusValue Barrier => new TagStatusValue(TagStatusType.Max, Status.Barrier);
+
+        // アザーステータス
+        /// <summary> 水泳 </summary>
+        public static TagStatus Swimming => new TagStatus(Status.Swimming);
+        /// <summary> 飛行 </summary>
+        public static TagStatus Flying => new TagStatus(Status.Flying);
+        /// <summary> 二刀流 </summary>
+        public static new TagStatus DoubleSword => new TagStatus(Status.DoubleSword);
+        /// <summary> 隠密 </summary>
+        public static TagStatus Hiding(bool isCharacter) => new TagStatusHiding(isCharacter);
+        /// <summary> 識別済 </summary>
+        public static TagStatus Identified(bool isCharacter) => new TagStatusIdentified(isCharacter);
+        /// <summary> シーンに存在しない </summary>
+        public static TagStatus NotInScene => new TagStatus(Status.NotInScene);
+        /// <summary> 行動 </summary>
+        public static TagStatusBehavior Behavior => new TagStatusBehavior();
+        /// <summary> ヘイト </summary>
+        public static TagStatusHate Hate => new TagStatusHate();
+
+        public static IStatusTag MakeStatus(Status status, Tag target = null, bool isCharacter = true)
         {
             switch (status)
             {
-                case Status.Fatigue:
-                    return new StFatigue(unit);
-                case Status.WeakPoint:
-                    return new StWeakPoint(unit, targetTag);
-                case Status.Weakness:
-                    return new StWeakness(unit);
-                case Status.Pursuit:
-                    return new StPursuit(unit);
-                case Status.Regeneration:
-                    return new StRegeneration(unit);
-                case Status.Mitigation:
-                    return new StMitigation(unit, targetTag);
-                case Status.Barrier:
-                    return new StBarrier(unit);
-                case Status.DoubleSword:
-                    return new StDoubleSword(unit);
-                case Status.Hiding:
-                    return new StHiding(unit);
-                case Status.Identified:
-                    return new StIdentified(unit);
-                case Status.Behavior:
-                    return new StBehavior(unit);
-                case Status.Hate:
-                    return new StHate(unit);
-                default:
-                    break;
+                // ライフステータス
+                /// <summary> 疲労 </summary>
+                case Status.Fatigue: return Fatigue;
+                /// <summary> 弱点 </summary>
+                case Status.WeakPoint: return WeakPoint(target);
+                /// <summary> 戦闘不能 </summary>
+                case Status.UnableFight: return UnableFight;
+                /// <summary> 死亡 </summary>
+                case Status.Death: return Death;
+                // バッドステータス
+                /// <summary> 萎縮 </summary>
+                case Status.Atrophy: return Atrophy;
+                /// <summary> 放心 </summary>
+                case Status.Emptiness: return Emptiness;
+                /// <summary> 硬直 </summary>
+                case Status.Stiffness: return Stiffness;
+                /// <summary> 惑乱 </summary>
+                case Status.Scare: return Scare;
+                /// <summary> 衰弱 </summary>
+                case Status.Weakness: return Weakness;
+                /// <summary> 追撃 </summary>
+                case Status.Pursuit: return Pursuit;
+                /// <summary> 重篤 </summary>
+                case Status.Serious: return Serious;
+                /// <summary> 慢心 </summary>
+                case Status.Prosperity: return Prosperity;
+                // コンバットステータス
+                /// <summary> 再生 </summary>
+                case Status.Regeneration: return Regeneration;
+                /// <summary> 軽減 </summary>
+                case Status.Mitigation: return Mitigation(target);
+                /// <summary> 障壁 </summary>
+                case Status.Barrier: return Barrier;
+                // アザーステータス
+                /// <summary> 水泳 </summary>
+                case Status.Swimming: return Swimming;
+                /// <summary> 飛行 </summary>
+                case Status.Flying: return Flying;
+                /// <summary> 二刀流 </summary>
+                case Status.DoubleSword: return DoubleSword;
+                /// <summary> 隠密 </summary>
+                case Status.Hiding: return Hiding(isCharacter);
+                /// <summary> 識別済 </summary>
+                case Status.Identified: return Identified(isCharacter);
+                /// <summary> シーンに存在しない </summary>
+                case Status.NotInScene: return NotInScene;
+                /// <summary> 行動 </summary>
+                case Status.Behavior: return Behavior;
+                /// <summary> ヘイト </summary>
+                case Status.Hate: return Hate;
             }
-            return new TagStatus(unit, status);
+            throw new ArgumentOutOfRangeException();
         }
+
+    }
+
+    /// <summary> (数量を持たない)その他のステータスタグ </summary>
+    public class TagStatusOther : TagStatus
+    {
+        private StatusCategory category;
+
+        /// <summary> ステータスカテゴリー </summary>
+        public override StatusCategory Category => category;
+
+        public TagStatusOther(StatusCategory cat, string name) : base(name) => category = cat;
+
+        public override string ToString() => Name;
     }
 
     /// <summary> 数量を持つステータスタグ </summary>
     public class TagStatusValue : TagValue, IStatusTag
     {
-        public TagStatusValue(Unit unit, TagStatusType type, Status status) : base(status.GetText(), type, 0)
-        { Status = status; Unit = unit; }
-
+        /// <summary> ステータス種別 </summary>
         public Status Status { get; }
 
-        public bool IsExist => Unit.HaveStatus.Any(s => s == this);
+        /// <summary> ステータスカテゴリー </summary>
+        public virtual StatusCategory Category => Status.GetCategory();
 
-        public void Remove() { Unit.HaveStatus.Remove(this); }
+        public TagStatusValue(TagStatusType type, Status status) : base(status.GetText(), type, 0) => Status = status;
 
-        public void Recieve(int value)
+        protected TagStatusValue(TagStatusType type, string name) : base(name, type, 0) => Status = Status.Other;
+    }
+
+    /// <summary> 数量を持つその他のステータスタグ </summary>
+    public class TagStatusValueOther : TagStatusValue
+    {
+        private StatusCategory category;
+
+        /// <summary> ステータスカテゴリー </summary>
+        public override StatusCategory Category => category;
+
+        public TagStatusValueOther(StatusCategory cat, TagStatusType type, string name) : base(type, name) => category = cat;
+
+        public override string ToString() => Name;
+    }
+
+    /// <summary> 数量を持ち、対象タグを持つステータスタグ </summary>
+    public class TagStatusTarget : TagStatusValue
+    {
+        /// <summary> 弱点になるタグ </summary>
+        public Tag Target { get; protected set; }
+
+        public TagStatusTarget(TagStatusType type, Status status, Tag targetTag) : base(TagStatusType.Overlap, Status.Mitigation) => Target = targetTag;
+
+        public override string ToString() { return Target == null ? base.ToString() : "[" + Name + "（" + Target.Name + "）：" + Value + "]"; }
+
+        /// <returns>適用されるならTrue</returns>
+        /// <summary> 軽減・弱点が適用されるかどうか </summary>
+        /// <param name="target">このステータスを持つUnit</param>
+        /// <param name="attacker">攻撃者Unit</param>
+        public bool IsApplication(Unit target, Unit attacker)
         {
-            if (Type == TagStatusType.Overlap || Value == 0) Unit.HaveStatus.Add(this);
-            switch (Type)
+            if (Target == null)
+                return true;
+            if (Target.Name == LHTRPGBase.TagNameNearbyAttack || Target.Name == LHTRPGBase.TagNameNotNearbyAttack)
             {
-                case TagStatusType.Add:
-                    Value += value;
-                    break;
-                case TagStatusType.Max:
-                    Value = Mathf.Max(Value, value);
-                    break;
-                case TagStatusType.Overlap:
-                    Value = value;
-                    break;
+                if (target.Session.CurrentScene is SceneBattle)
+                {
+                    var pos = (target.Session.CurrentScene as SceneBattle).Positions;
+                    return Target.Name == LHTRPGBase.TagNameNearbyAttack
+                        ? pos[target] == pos[attacker]
+                        : pos[target] != pos[attacker];
+                }
+                return false;
             }
-            if (Value <= 0) Remove();
+            return attacker.Tags.Contains(Target);
         }
     }
 
-    // ライフステータス
-    /// <summary> 疲労 </summary>
-    public class StFatigue : TagStatusValue { public StFatigue(Unit unit) : base(unit, TagStatusType.Add, Status.Fatigue) { } }
-
-    /// <summary> 弱点 </summary>
-    public class StWeakPoint : TagStatusValue, IHaveTargetStatusTag
-    {
-        public Tag Target { get; protected set; }
-
-        public StWeakPoint(Unit unit, Tag targetTag) : base(unit, TagStatusType.Overlap, Status.Mitigation) { Target = targetTag; }
-
-        public override string ToString() { return Target == null ? base.ToString() : "[" + Name + "（" + Target.Name + "）：" + Value + "]"; }
-    }
-
-    // バッドステータス
-    /// <summary> 衰弱 </summary>
-    public class StWeakness : TagStatusValue { public StWeakness(Unit unit) : base(unit, TagStatusType.Max, Status.Weakness) { } }
-
-    /// <summary> 追撃 </summary>
-    public class StPursuit : TagStatusValue { public StPursuit(Unit unit) : base(unit, TagStatusType.Overlap, Status.Pursuit) { } }
-
-    // コンバットステータス
-    /// <summary> 再生 </summary>
-    public class StRegeneration : TagStatusValue { public StRegeneration(Unit unit) : base(unit, TagStatusType.Max, Status.Regeneration) { } }
-
-    /// <summary> 軽減 </summary>
-    public class StMitigation : TagStatusValue, IHaveTargetStatusTag
-    {
-        public Tag Target { get; protected set; }
-
-        public StMitigation(Unit unit, Tag targetTag = null) : base(unit, TagStatusType.Overlap, Status.Mitigation) { Target = targetTag; }
-
-        public override string ToString() { return Target == null ? base.ToString() : "[" + Name + "（" + Target.Name + "）：" + Value + "]"; }
-    }
-
-    /// <summary> 障壁 </summary>
-    public class StBarrier : TagStatusValue { public StBarrier(Unit unit) : base(unit, TagStatusType.Max, Status.Barrier) { } }
-
-    // アザーステータス
-    /// <summary> 二刀流状態 </summary>
-    public class StDoubleSword : TagStatus { public StDoubleSword(Unit unit) : base(unit, Status.DoubleSword) { } }
-
     /// <summary> 隠密／隠蔽 </summary>
-    public class StHiding : TagStatus
+    public class TagStatusHiding : TagStatus
     {
-        public StHiding(Unit unit) : base(unit, Status.Hiding) { }
-        public override string Name => Unit.IsCharacter ? "隠密" : "隠蔽";
+        /// <summary> 対象がキャラクターかどうか </summary>
+        public bool IsCharacter { get; }
+
+        public TagStatusHiding(bool isCharacter) : base(Status.Hiding) => IsCharacter = isCharacter;
+
+        public override string Name => IsCharacter ? "隠密" : "隠蔽";
     }
 
     /// <summary> 識別済み／解析済み </summary>
-    public class StIdentified : TagStatus
+    public class TagStatusIdentified : TagStatus
     {
-        public StIdentified(Unit unit) : base(unit, Status.Identified) { }
-        public override string Name => Unit.IsCharacter ? "識別済み" : "解析済み";
+        /// <summary> 対象がキャラクターかどうか </summary>
+        public bool IsCharacter { get; }
+
+        public TagStatusIdentified(bool isCharacter) : base(Status.Identified) => IsCharacter = isCharacter;
+
+        public override string Name => IsCharacter ? "識別済み" : "解析済み";
     }
 
-    public enum Behavior
+    public enum BehaviorType
     {
         /// <summary> 未行動 </summary>
         [EnumText("未行動")] NotYet,
@@ -300,18 +387,22 @@ namespace LHTRPG
     }
 
     /// <summary> 未行動／行動済み／待機 </summary>
-    public class StBehavior : TagStatus
+    public class TagStatusBehavior : TagStatus
     {
-        public Behavior Type { get; set; }
-        public StBehavior(Unit unit, Behavior type = Behavior.NotYet) : base(unit, Status.Behavior) { Type = type; }
+        public BehaviorType Type { get; set; }
+
+        public TagStatusBehavior(BehaviorType type = BehaviorType.NotYet) : base(Status.Behavior) => Type = type;
+
         public override string Name => Type.GetText();
     }
 
     /// <summary> ヘイトトップ／ヘイトアンダー </summary>
-    public class StHate : TagStatus
+    public class TagStatusHate : TagStatus
     {
         public bool IsHateTop { get; set; } = false;
-        public StHate(Unit unit) : base(unit, Status.Hate) { }
+
+        public TagStatusHate() : base(Status.Hate) { }
+
         public override string Name => IsHateTop ? "ヘイトトップ" : "ヘイトアンダー";
     }
 }
