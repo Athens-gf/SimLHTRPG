@@ -49,10 +49,10 @@ namespace LHTRPG
         public virtual int HP { get; set; } = 0;
 
         /// <summary> ダメージを受ける処理 </summary>
-        public abstract int Damage(int damage, DamageType type, Unit fromUnit);
+        public abstract int Damage(EventPlayer evplayer, int damage, DamageType type, Unit fromUnit);
 
         /// <summary> 回復する処理 </summary>
-        public abstract int Heal(int heal, Unit fromUnit);
+        public abstract int Heal(EventPlayer evplayer, int heal, Unit fromUnit);
 
         /// <summary> ランク </summary>
         public int Rank { get; set; }
@@ -113,7 +113,7 @@ namespace LHTRPG
         /// <param name="status">ステータス種別</param>
         /// <param name="value">数値を持つステータスならその数値</param>
         /// <param name="target">軽減・弱点の対象</param>
-        public void GiveStatus(Status status, int value = 0, Tag target = null)
+        public void GiveStatus(EventPlayer evplayer, Status status, int value = 0, Tag target = null)
         {
             if (status.HasValue())
             {
@@ -153,17 +153,17 @@ namespace LHTRPG
         }
 
         /// <summary> ステータスを取り除く(Node指定) </summary>
-        public void RemoveStatus(LinkedListNode<IStatusTag> statusNode) => HaveStatus.Remove(statusNode);
+        public void RemoveStatus(EventPlayer evplayer, LinkedListNode<IStatusTag> statusNode) => HaveStatus.Remove(statusNode);
 
         /// <summary> ステータスを取り除く </summary>
         /// <param name="isAll">すべて取り除くかどうか、falseの場合最初に登録されたもの</param>
-        public void RemoveStatus(Status status, Tag target = null, bool isAll = false)
+        public void RemoveStatus(EventPlayer evplayer, Status status, Tag target = null, bool isAll = false)
         {
             if (isAll)
                 foreach (var node in GetStatusNodeList(status, target))
-                    RemoveStatus(node);
+                    RemoveStatus(evplayer, node);
             else
-                RemoveStatus(GetStatusNode(status, target));
+                RemoveStatus(evplayer, GetStatusNode(status, target));
         }
 
         /// <summary> ステータスの数値を変更する </summary>
@@ -171,7 +171,7 @@ namespace LHTRPG
         /// <param name="status">ステータス種別</param>
         /// <param name="target">軽減・弱点の場合の対象タグ</param>
         /// <param name="fillter">対象をとるFillter</param>
-        public void ChangeStatusValue(Func<int, int> change, Status status, Tag target = null,
+        public void ChangeStatusValue(EventPlayer evplayer, Func<int, int> change, Status status, Tag target = null,
             Func<IEnumerable<IStatusTag>, IEnumerable<TagStatusValue>> fillter = null)
         {
             if (!status.HasValue())
@@ -438,7 +438,7 @@ namespace LHTRPG
                 if (last.Check(this))
                     return last.Correct(this);
             }
-            return new DiceNumber(2, GetSkillValue(type))
+            return new DiceNumber { Dice = 2, FixedNumber = GetSkillValue(type) }
                 + CorJudgeValue[CorType.AddSub].Where(t => t.Type == type && t.Check(this))
                     .Select(t => t.Correct(this))
                     .Aggregate((t0, t1) => t0 + t1);

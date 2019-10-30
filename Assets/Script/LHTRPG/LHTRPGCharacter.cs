@@ -244,10 +244,10 @@ namespace LHTRPG
         }
 
         /// <summary> ダメージを受ける処理 </summary>
-        public override int Damage(int damage, DamageType type, Unit fromUnit) => 0;
+        public override int Damage(EventPlayer evplayer, int damage, DamageType type, Unit fromUnit) => 0;
 
         /// <summary> 回復する処理 </summary>
-        public override int Heal(int heal, Unit fromUnit) => 0;
+        public override int Heal(EventPlayer evplayer, int heal, Unit fromUnit) => 0;
     }
 
     /// <summary> ゲスト(NPC、能力値やHPなどのデータを持つキャラクター) </summary>
@@ -460,7 +460,7 @@ namespace LHTRPG
         }
 
         /// <summary> ダメージを受ける処理 </summary>
-        public override int Damage(int damage, DamageType type, Unit fromUnit)
+        public override int Damage(EventPlayer evplayer, int damage, DamageType type, Unit fromUnit)
         {
             switch (type)
             {
@@ -477,7 +477,7 @@ namespace LHTRPG
         }
 
         /// <summary> 回復する処理 </summary>
-        public override int Heal(int heal, Unit fromUnit)
+        public override int Heal(EventPlayer evplayer, int heal, Unit fromUnit)
         {
             return heal;
         }
