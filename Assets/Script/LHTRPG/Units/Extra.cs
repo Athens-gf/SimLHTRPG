@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using AthensUtility;
+using System;
+using System.Collections.Generic;
 using System.Linq;
-using AthensUtility;
 
 namespace LHTRPG
 {
@@ -44,7 +45,7 @@ namespace LHTRPG
         }
 
         /// <summary> ダメージを受ける処理 </summary>
-        public override int Damage(EventPlayer evplayer, int damage, DamageType type, Unit fromUnit) => 0;
+        public override Tuple<int, int> Damage(EventPlayer evplayer, int damage, DamageType type, Unit fromUnit) => null;
 
         /// <summary> 回復する処理 </summary>
         public override int Heal(EventPlayer evplayer, int heal, Unit fromUnit) => 0;

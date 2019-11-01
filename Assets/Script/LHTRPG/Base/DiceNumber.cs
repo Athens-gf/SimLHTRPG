@@ -24,14 +24,14 @@ namespace LHTRPG
         /// <summary> ダイス個数の暗黙的変換、文字列 </summary>
         public static implicit operator DiceNumber(string str)
         {
-            var ss = str.Split('D').ToList();
+            var ss = str.Split('D');
             int f = 0;
-            if (ss.Count == 2)
+            if (ss.Length == 2)
             {
                 if (int.TryParse(ss[0], out int d) && (ss[1] == "" || int.TryParse(ss[1], out f)))
                     return new DiceNumber { Dice = d, FixedNumber = f };
             }
-            else if (ss.Count == 1 && (ss[0] == "" || int.TryParse(ss[0], out f)))
+            else if (ss.Length == 1 && (ss[0] == "" || int.TryParse(ss[0], out f)))
                 return new DiceNumber { FixedNumber = f };
 
             throw new Exception($"this string \"{str}\" can't change dice number");

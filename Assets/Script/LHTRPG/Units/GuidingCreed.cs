@@ -30,7 +30,7 @@ namespace LHTRPG
         public static ReadOnlyCollection<Creed> Creeds { get; }
 
         /// <summary> ガイディングクリード名一覧 </summary>
-        public static List<string> CreedNames => Creeds.Select(c => c.Name).ToList();
+        public static IEnumerable<string> CreedNames => Creeds.Select(c => c.Name);
 
         static GuidingCreed()
         {

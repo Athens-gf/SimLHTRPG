@@ -209,25 +209,68 @@ namespace LHTRPG
         }
 
         /// <summary> ダメージを受ける処理 </summary>
-        public override int Damage(EventPlayer evplayer, int damage, DamageType type, Unit fromUnit)
+        /// <param name="evplayer">イベント処理機、何らかのイベント発行する場合使用</param>
+        /// <param name="damage">与ダメージ</param>
+        /// <param name="type">ダメージ種別</param>
+        /// <param name="fromUnit">攻撃Unit</param>
+        /// <returns>[実際のダメージ,[障壁]減少分]</returns>
+        public override Tuple<int, int> Damage(EventPlayer evplayer, int damage, DamageType type, Unit fromUnit)
         {
             switch (type)
             {
                 case DamageType.Physics:
+                    // 物理ダメージなら物理防御力分減少
+                    damage -= GetBattleStatus(BattleStatusType.PhyDefense);
                     break;
                 case DamageType.Magic:
+                    // 魔法ダメージなら魔法防御力分減少
+                    damage -= GetBattleStatus(BattleStatusType.MagDefense);
                     break;
                 case DamageType.Through:
-                    break;
                 case DamageType.Directly:
                     break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
-            throw new ArgumentOutOfRangeException();
+            // 直接ダメージ以外なら[軽減]を適用
+            if (type != DamageType.Directly)
+            {
+                var mitigations = GetStatusList<TagStatusTarget>(Status.Mitigation)
+                    .Where(t => t.IsApplication(this, fromUnit))
+                    .Select(t => t.Value);
+                if (mitigations.Any())
+                    damage -= mitigations.Max();
+            }
+            // 軽減系の効果適用
+
+            // ダメージが0以下なら0に
+            damage = Math.Max(0, damage);
+            var barrierNum = 0;
+            // [障壁]がある
+            if (IsExistStatus(Status.Barrier))
+            {
+                var barrierNode = GetStatusNode(Status.Barrier);
+                var barrier = barrierNode.Value as TagStatusValue;
+                barrierNum = Math.Min(damage, barrier.Value);
+                barrier.Value -= barrierNum;
+                // [障壁]消滅
+                if (barrier.Value <= 0)
+                    RemoveStatus(evplayer, barrierNode);
+                damage -= barrierNum;
+            }
+            // HP減少
+            HP = Math.Max(0, HP - damage);
+            // [戦闘不能]処理
+            if (HP <= 0)
+                evplayer.AddNext(EventType.GiveStatus, new object[] { Status.UnableFight, fromUnit, this });
+            return new Tuple<int, int>(damage, barrierNum);
         }
 
         /// <summary> 回復する処理 </summary>
         public override int Heal(EventPlayer evplayer, int heal, Unit fromUnit)
         {
+            // HP回復
+            HP = Math.Min(GetBattleStatus(BattleStatusType.MaxHP), HP + heal);
             return heal;
         }
     }

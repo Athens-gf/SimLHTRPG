@@ -117,8 +117,8 @@ namespace AthensUtility
         /// <param name="iter">コンテナ</param>
         /// <param name="check">確認用関数</param>
         /// <returns>一致したインデックスのリスト</returns>
-        public static List<int> AllIndex<T>(this IEnumerable<T> iter, Func<T, bool> check)
-            => iter.Select((t, i) => new { Value = t, Index = i }).Where(x => check(x.Value)).Select(x => x.Index).ToList();
+        public static IEnumerable<int> AllIndex<T>(this IEnumerable<T> iter, Func<T, bool> check)
+            => iter.Select((t, i) => new { Value = t, Index = i }).Where(x => check(x.Value)).Select(x => x.Index);
 
         /// <summary> コンテナ内で条件に最初に一致した要素のインデックスを返す </summary>
         /// <param name="iter">コンテナ</param>

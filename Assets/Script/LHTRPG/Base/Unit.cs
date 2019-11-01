@@ -46,9 +46,15 @@ namespace LHTRPG
         public virtual int HP { get; set; } = 0;
 
         /// <summary> ダメージを受ける処理 </summary>
-        public abstract int Damage(EventPlayer evplayer, int damage, DamageType type, Unit fromUnit);
+        /// <param name="evplayer">イベント処理機、何らかのイベント発行する場合使用</param>
+        /// <param name="damage">与ダメージ</param>
+        /// <param name="type">ダメージ種別</param>
+        /// <param name="fromUnit">攻撃Unit</param>
+        /// <returns>実際のダメージ、負の場合[障壁]分</returns>
+        public abstract Tuple<int, int> Damage(EventPlayer evplayer, int damage, DamageType type, Unit fromUnit);
 
         /// <summary> 回復する処理 </summary>
+        /// <param name="evplayer">イベント処理機、何らかのイベント発行する場合使用</param>
         public abstract int Heal(EventPlayer evplayer, int heal, Unit fromUnit);
 
         /// <summary> ランク </summary>
@@ -98,7 +104,7 @@ namespace LHTRPG
         public bool IsExistStatus(Status status, Tag target = null) => GetStatusNodeList(status, target).Any();
 
         /// <summary> 特定のステータスタグをNodeで取得 </summary>
-        private LinkedListNode<IStatusTag> GetStatusNode(Status status, Tag target = null) => GetStatusNodeList(status, target).FirstOrDefault();
+        public LinkedListNode<IStatusTag> GetStatusNode(Status status, Tag target = null) => GetStatusNodeList(status, target).FirstOrDefault();
 
         /// <summary> 特定のステータスタグを取得 </summary>
         public IStatusTag GetStatus(Status status, Tag target = null) => GetStatusNode(status, target)?.Value;
@@ -107,6 +113,7 @@ namespace LHTRPG
         public T GetStatus<T>(Status status, Tag target = null) where T : Tag, IStatusTag => GetStatus(status, target) as T;
 
         /// <summary> ステータスを与える </summary>
+        /// <param name="evplayer">イベント処理機、何らかのイベント発行する場合使用</param>
         /// <param name="status">ステータス種別</param>
         /// <param name="value">数値を持つステータスならその数値</param>
         /// <param name="target">軽減・弱点の対象</param>
@@ -150,9 +157,11 @@ namespace LHTRPG
         }
 
         /// <summary> ステータスを取り除く(Node指定) </summary>
+        /// <param name="evplayer">イベント処理機、何らかのイベント発行する場合使用</param>
         public void RemoveStatus(EventPlayer evplayer, LinkedListNode<IStatusTag> statusNode) => HaveStatus.Remove(statusNode);
 
         /// <summary> ステータスを取り除く </summary>
+        /// <param name="evplayer">イベント処理機、何らかのイベント発行する場合使用</param>
         /// <param name="isAll">すべて取り除くかどうか、falseの場合最初に登録されたもの</param>
         public void RemoveStatus(EventPlayer evplayer, Status status, Tag target = null, bool isAll = false)
         {
@@ -164,6 +173,7 @@ namespace LHTRPG
         }
 
         /// <summary> ステータスの数値を変更する </summary>
+        /// <param name="evplayer">イベント処理機、何らかのイベント発行する場合使用</param>
         /// <param name="change">変更関数(元数値)=>変更数値</param>
         /// <param name="status">ステータス種別</param>
         /// <param name="target">軽減・弱点の場合の対象タグ</param>
