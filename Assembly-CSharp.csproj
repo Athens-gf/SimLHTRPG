@@ -10,7 +10,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <ProjectGuid>{DE50D58B-9D60-C9FF-DEC7-00754540AF04}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -70,7 +71,12 @@
     <Compile Include="Assets\Script\LHTRPG\Base\LHTRPGBase.cs" />
     <Compile Include="Assets\Script\LHTRPG\Base\RollResult.cs" />
     <Compile Include="Assets\Script\LHTRPG\Base\Unit.cs" />
-    <Compile Include="Assets\Script\LHTRPG\Prop.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Prop\Space.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Prop\Object.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Prop\SceneEffect.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Prop\Wall.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Prop\Terrain.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Prop\Prop.cs" />
     <Compile Include="Assets\Script\LHTRPG\Scene.cs" />
     <Compile Include="Assets\Script\LHTRPG\Skill\LHTRPGEffect.cs" />
     <Compile Include="Assets\Script\LHTRPG\Skill\LHTRPGSkill.cs" />

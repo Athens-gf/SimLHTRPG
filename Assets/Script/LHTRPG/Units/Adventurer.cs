@@ -81,21 +81,15 @@ namespace LHTRPG
         /// <summary> 今までなったことのあるサブ職業の履歴 </summary>
         public List<TagSubJob> HistorySubJob { get; } = new List<TagSubJob>();
 
-        protected override IEnumerable<Tag> LTags
-        {
-            get
-            {
-                return new Tag(IsAdventurer ? "冒険者" : "大地人").MakeCollection()
-                    .Append(Sex)
-                    .Append(Race)
-                    .Append(MainJob)
-                    .Append(SubJob)
-                    .Append(Union)
-                    .Append(GuidingCreed.Tag)
-                    .Concat(OtherTags)
-                    .Where(t => t != null);
-            }
-        }
+        protected override IEnumerable<Tag> LTags => new Tag(IsAdventurer ? "冒険者" : "大地人").MakeCollection()
+            .Append(Sex)
+            .Append(Race)
+            .Append(MainJob)
+            .Append(SubJob)
+            .Append(Union)
+            .Append(GuidingCreed.Tag)
+            .Concat(OtherTags)
+            .Where(t => t != null);
 
         /// <summary> コネクション </summary>
         public List<Character> Connection { get; } = new List<Character>();

@@ -107,29 +107,29 @@ namespace LHTRPG
         /// <summary> 両手タグ </summary>
         public static Tag TwoHand => new Tag("両手");
         /// <summary> 楽器タグ </summary>
-        public static Tag TagInstrument => new Tag("楽器");
+        public static Tag Instrument => new Tag("楽器");
         /// <summary> 盾タグ </summary>
-        public static Tag TagShield => new Tag("盾");
+        public static Tag Shield => new Tag("盾");
         /// <summary> 補助装備タグ </summary>
-        public static Tag TagAssistantEquipment => new Tag("補助装備");
+        public static Tag AssistantEquipment => new Tag("補助装備");
         /// <summary> 鞄タグ </summary>
-        public static Tag TagBag => new Tag("鞄");
+        public static Tag Bag => new Tag("鞄");
         /// <summary> コア素材タグ </summary>
-        public static Tag TagCoreMaterial => new Tag("コア素材");
+        public static Tag CoreMaterial => new Tag("コア素材");
         /// <summary> トラップタグ </summary>
-        public static Tag TagTrap => new Tag("トラップ");
+        public static Tag Trap => new Tag("トラップ");
         /// <summary> 物品タグ </summary>
-        public static Tag TagGoods => new Tag("物品");
+        public static Tag Goods => new Tag("物品");
         /// <summary> ボスタグ </summary>
-        public static Tag TagBoss => new Tag("ボス");
+        public static Tag Boss => new Tag("ボス");
         /// <summary> モブタグ </summary>
-        public static Tag TagMob => new Tag("モブ");
+        public static Tag Mob => new Tag("モブ");
         /// <summary> 暗視タグ </summary>
-        public static Tag TagNightVision => new Tag("暗視");
+        public static Tag NightVision => new Tag("暗視");
         /// <summary> 水棲タグ </summary>
-        public static Tag TagAquatic => new Tag("水棲");
+        public static Tag Aquatic => new Tag("水棲");
         /// <summary> パーティタグ </summary>
-        public static Tag TagParty => new Tag("パーティ");
+        public static Tag Party => new Tag("パーティ");
         #endregion
     }
 

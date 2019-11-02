@@ -5,6 +5,7 @@ using System.Linq;
 
 namespace LHTRPG
 {
+    /// <summary> エネミークラス </summary>
     public class Enemy : Character
     {
         /// <summary> モブまたはボスタグ </summary>
@@ -25,16 +26,10 @@ namespace LHTRPG
         /// <summary> 抵抗 </summary>
         public DiceNumber Resistance { get; set; }
 
-        protected override IEnumerable<Tag> LTags
-        {
-            get
-            {
-                return MobBoss.MakeCollection()
-                    .Append(Race)
-                    .Concat(OtherTags)
-                    .Where(t => t != null);
-            }
-        }
+        protected override IEnumerable<Tag> LTags => MobBoss.MakeCollection()
+            .Append(Race)
+            .Concat(OtherTags)
+            .Where(t => t != null);
 
         public Enemy() : base(UnitType.Enemy) { }
 
