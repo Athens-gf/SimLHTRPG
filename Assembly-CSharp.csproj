@@ -10,7 +10,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>
+    </RootNamespace>
     <ProjectGuid>{DE50D58B-9D60-C9FF-DEC7-00754540AF04}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -82,8 +83,8 @@
     <Compile Include="Assets\Script\LHTRPG\Scene\SceneBattle.cs" />
     <Compile Include="Assets\Script\LHTRPG\Scene\SceneBriefing.cs" />
     <Compile Include="Assets\Script\LHTRPG\Scene\Session.cs" />
-    <Compile Include="Assets\Script\LHTRPG\Skill\LHTRPGEffect.cs" />
-    <Compile Include="Assets\Script\LHTRPG\Skill\LHTRPGSkill.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Skill\Effect.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Skill\Skill.cs" />
     <Compile Include="Assets\Script\LHTRPG\Skill\SkillBasic.cs" />
     <Compile Include="Assets\Script\LHTRPG\Status\Status.cs" />
     <Compile Include="Assets\Script\LHTRPG\Status\Tag\TagStatusBehavior.cs" />
