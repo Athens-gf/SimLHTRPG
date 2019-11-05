@@ -6,29 +6,6 @@ using AthensUtility;
 
 namespace LHTRPG
 {
-    public struct RankNumber
-    {
-        public static RankNumber Base0 { get { return new RankNumber(0, false); } }
-        public int Value { get; private set; }
-        public bool IsRank { get; private set; }
-        public bool IsZero { get { return !IsRank && Value == 0; } }
-        public bool IsOne { get { return !IsRank && Value == 1; } }
-        public RankNumber(int _value, bool _isRank) { Value = _value; IsRank = _isRank; }
-
-        public override string ToString() { return (IsRank ? "［ＳＲ" + Value + "］" : Value.ToString()); }
-        public static implicit operator RankNumber(int _value) { return new RankNumber(_value, false); }
-        public static implicit operator RankNumber(string _str)
-        {
-            if (_str.StartsWith("［") && _str.EndsWith("］")) _str = _str.Remove("［").Remove("］");
-            var isRank = _str.Contains("ＳＲ");
-            if (isRank) _str = _str.Remove("ＳＲ");
-            int value;
-            if (!int.TryParse(_str, out value)) throw new SystemException();
-            return new RankNumber(value, isRank);
-        }
-        public int GetValue(Unit _unit) { return (IsRank ? _unit.Rank : 0) + Value; }
-    }
-
     // タイミング
     public class Timing
     {
@@ -67,13 +44,13 @@ namespace LHTRPG
         public Process Process { get; protected set; }
         public bool IsBefore { get; protected set; }
 
-        public Timing(Type _type) { Type = _type; }
+        public Timing(Type type) { Type = type; }
 
-        public Timing(Action _action) : this(Type.Action) { Action = _action; }
+        public Timing(Action action) : this(Type.Action) { Action = action; }
 
-        public Timing(Process _process) : this(Type.Process) { Process = _process; }
+        public Timing(Process process) : this(Type.Process) { Process = process; }
 
-        public Timing(Type _type, bool _isBefore) : this(_type) { IsBefore = _isBefore; }
+        public Timing(Type type, bool isBefore) : this(type) { IsBefore = isBefore; }
 
         public override string ToString()
         {
@@ -119,18 +96,18 @@ namespace LHTRPG
         public RankNumber BuffActive { get; protected set; }
         public RankNumber BuffPassive { get; protected set; }
 
-        public Judgement(Type _type) { Type = _type; }
+        public Judgement(Type type) { Type = type; }
 
-        public Judgement(SkillValue _useSkill, BasicType _basicType) : this(_useSkill, _basicType, RankNumber.Base0) { }
-        public Judgement(SkillValue _useSkill, BasicType _basicType, RankNumber _buff) : this(Type.Basic)
-        { UseSkillActive = _useSkill; BasicType = _basicType; BuffActive = _buff; }
+        public Judgement(SkillValue useSkill, BasicType basicType) : this(useSkill, basicType, RankNumber.Base0) { }
+        public Judgement(SkillValue useSkill, BasicType basicType, RankNumber buff) : this(Type.Basic)
+        { UseSkillActive = useSkill; BasicType = basicType; BuffActive = buff; }
 
-        public Judgement(SkillValue _active, SkillValue _passive) : this(_active, _passive, RankNumber.Base0) { }
-        public Judgement(SkillValue _active, SkillValue _passive, RankNumber _buffActive) : this(_active, _passive, _buffActive, RankNumber.Base0) { }
-        public Judgement(SkillValue _active, SkillValue _passive, RankNumber _buffActive, RankNumber _buffPassive) : this(Type.Versus)
-        { UseSkillActive = _active; UseSkillPassive = _passive; BuffActive = _buffActive; BuffPassive = _buffPassive; }
+        public Judgement(SkillValue active, SkillValue passive) : this(active, passive, RankNumber.Base0) { }
+        public Judgement(SkillValue active, SkillValue passive, RankNumber buffActive) : this(active, passive, buffActive, RankNumber.Base0) { }
+        public Judgement(SkillValue active, SkillValue passive, RankNumber buffActive, RankNumber buffPassive) : this(Type.Versus)
+        { UseSkillActive = active; UseSkillPassive = passive; BuffActive = buffActive; BuffPassive = buffPassive; }
 
-        protected string GetBuffStr(RankNumber _buff) { return (_buff.ToString() == "0" ? "" : "＋" + _buff); }
+        protected string GetBuffStr(RankNumber buff) { return (buff.ToString() == "0" ? "" : "＋" + buff); }
 
         public override string ToString()
         {
@@ -163,9 +140,9 @@ namespace LHTRPG
         public RankNumber Value { get; protected set; }
         public bool IsSelect { get; protected set; }
 
-        public Target(Type _type) : this(_type, RankNumber.Base0) { }
-        public Target(Type _type, RankNumber _value) : this(_type, _value, true) { }
-        public Target(Type _type, RankNumber _value, bool _isSelect) { Type = _type; Value = _value; IsSelect = _isSelect; }
+        public Target(Type type) : this(type, RankNumber.Base0) { }
+        public Target(Type type, RankNumber value) : this(type, value, true) { }
+        public Target(Type type, RankNumber value, bool isSelect) { Type = type; Value = value; IsSelect = isSelect; }
 
         public override string ToString()
         {
@@ -194,8 +171,8 @@ namespace LHTRPG
         public Type Type { get; protected set; }
         public RankNumber Value { get; protected set; }
 
-        public Range(Type _type) : this(_type, RankNumber.Base0) { }
-        public Range(Type _type, RankNumber _value) { Type = _type; Value = _value; }
+        public Range(Type type) : this(type, RankNumber.Base0) { }
+        public Range(Type type, RankNumber value) { Type = type; Value = value; }
 
         public override string ToString()
         {
@@ -204,71 +181,9 @@ namespace LHTRPG
         }
     }
 
-    // コスト
-    public class Cost
-    {
-        public enum Type
-        {
-            [EnumText("－")] None,
-            [EnumText("ヘイト")] Hate,
-            [EnumText("因果力")] Fate,
-            [EnumText("パーティ")] Party,
-            [EnumText("仲間")] Buddy,
-            [EnumText("本文")] Text,
-        }
-        public Type Type { get; protected set; }
-        public int Value { get; protected set; }
-        public Cost SubCost { get; protected set; }
 
-        public Cost(Type _type, int _value = 0, Cost _subCost = null) { Type = _type; Value = _value; SubCost = _subCost; }
 
-        public override string ToString()
-        {
-            switch (Type)
-            {
-                case Type.Hate:
-                case Type.Fate:
-                    return Type.GetText() + Value;
-                case Type.Party:
-                case Type.Buddy:
-                    return SubCost + "（" + Type.GetText() + "）";
-                default:
-                    return Type.GetText();
-            }
-        }
-    }
 
-    // 制限
-    public class Limitation
-    {
-        public enum Type
-        {
-            [EnumText("－")] None,
-            [EnumText("シナリオ")] Scenario,
-            [EnumText("シーン")] Scene,
-            [EnumText("ラウンド")] Round,
-            [EnumText("［パーティ］")] Party,
-            [EnumText("本文")] Text,
-        }
-        public Type Type { get; private set; }
-        public RankNumber Value { get; protected set; }
-
-        public Limitation(Type _type) : this(_type, RankNumber.Base0) { }
-        public Limitation(Type _type, RankNumber _value) { Type = _type; Value = _value; }
-
-        public override string ToString()
-        {
-            switch (Type)
-            {
-                case Type.Scenario:
-                case Type.Scene:
-                case Type.Round:
-                    return Type.GetText() + Value + "回";
-                default:
-                    return Type.GetText();
-            }
-        }
-    }
 
     // 動作／特技
     public abstract class Skill : Unit
@@ -283,16 +198,16 @@ namespace LHTRPG
         public Limitation Limitation { get; protected set; }
         public List<Effect> Effects { get; protected set; }
 
-        public Skill(string _name, int _maxRank, Timing _timing, Judgement _judgement, Target _target, Range _range, Cost _cost, Limitation _limitation) : base(Type.Action)
+        public Skill(string name, int maxRank, Timing timing, Judgement judgement, Target target, Range range, Cost cost, Limitation limitation) : base(Type.Action)
         {
-            Name = _name;
-            MaxRank = _maxRank;
-            Timing = _timing;
-            Judgement = _judgement;
-            Target = _target;
-            Range = _range;
-            Cost = _cost;
-            Limitation = _limitation;
+            Name = name;
+            MaxRank = maxRank;
+            Timing = timing;
+            Judgement = judgement;
+            Target = target;
+            Range = range;
+            Cost = cost;
+            Limitation = limitation;
             Effects = new List<Effect>();
         }
     }

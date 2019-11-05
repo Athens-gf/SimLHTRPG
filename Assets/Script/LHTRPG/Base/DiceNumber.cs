@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using AthensUtility;
 
 namespace LHTRPG
 {
@@ -17,14 +18,14 @@ namespace LHTRPG
         /// <summary> ダイスが使われているかどうか </summary>
         public bool IsUseDice => Dice != 0;
 
-        public override string ToString() => Dice == 0 ? $"{FixedNumber}" : $"{Dice}D{FixedNumber.ToString("+#;-#;")}";
+        public override string ToString() => Dice == 0 ? FixedNumber.FullWidth() : $"{Dice.FullWidth()}Ｄ{FixedNumber.FullWidth(true)}";
 
         public static implicit operator string(DiceNumber dNum) => dNum.ToString();
 
         /// <summary> ダイス個数の暗黙的変換、文字列 </summary>
         public static implicit operator DiceNumber(string str)
         {
-            var ss = str.Split('D');
+            var ss = str.Split('Ｄ');
             int f = 0;
             if (ss.Length == 2)
             {

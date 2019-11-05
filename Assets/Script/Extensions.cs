@@ -8,18 +8,53 @@ namespace AthensUtility
 {
     public static class Extensions
     {
+        private static readonly string[] FullWidthNumbers = { "０", "１", "２", "３", "４", "５", "６", "７", "８", "９" };
+
         /// <summary> 文字列からremoveStrを取り除いて返す </summary>
         /// <returns>取り除いた後の文字列</returns>
         /// <param name="str">元の文字列</param>
         /// <param name="removeStr">取り除く文字列</param>
-        public static string Remove(this string str, string removeStr) { return str.Replace(removeStr, ""); }
+        public static string Remove(this string str, string removeStr) => str.Replace(removeStr, "");
 
         /// <summary> 文字列str中のcの数をカウントする </summary>
         /// <returns>カウント結果</returns>
         /// <param name="str">元の文字列</param>
         /// <param name="c">カウントする文字</param>
-        public static int Count(this string str, char c) { return str.Split(c).Length - 1; }
+        public static int Count(this string str, char c) => str.Split(c).Length - 1;
 
+        /// <summary> すべて全角にした数値を返す </summary>
+        /// <param name="value">数値</param>
+        public static string FullWidth(this int value, bool isPlus = false)
+        {
+            var str = value.ToString().Replace("-", "－");
+            FullWidthNumbers.Select((s, i) => new { Pre = i.ToString(), To = s })
+                .ToList().ForEach(x => str = str.Replace(x.Pre, x.To));
+            if (value >= 0)
+                str = "＋" + str;
+            return str;
+        }
+
+        /// <summary> すべて全角の数字文字列から数値取得 </summary>
+        /// <param name="s">数値文字列</param>
+        public static int FullWidth(this string s)
+        {
+            s = s.Replace("－", "-");
+            FullWidthNumbers.Select((str, i) => new { Pre = str, To = i.ToString() })
+                .ToList().ForEach(x => s = s.Replace(x.Pre, x.To));
+            return int.Parse(s);
+        }
+
+        /// <summary> すべて全角の数字文字列から数値取得 </summary>
+        /// <param name="s">数値文字列</param>
+        /// <param name="result">変換数値</param>
+        /// <returns>変換できたか</returns>
+        public static bool TryParseFullWidth(string s, out int result)
+        {
+            s = s.Replace("－", "-");
+            FullWidthNumbers.Select((str, i) => new { Pre = str, To = i.ToString() })
+                .ToList().ForEach(x => s = s.Replace(x.Pre, x.To));
+            return int.TryParse(s, out result);
+        }
 
         /// <summary> 2つのActionを連続実行するActionを作成する </summary>
         public static Action Add(this Action action0, Action action1) => () => { action0(); action1(); };

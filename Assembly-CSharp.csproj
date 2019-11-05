@@ -71,6 +71,10 @@
     <Compile Include="Assets\Script\LHTRPG\Base\LHTRPGBase.cs" />
     <Compile Include="Assets\Script\LHTRPG\Base\RollResult.cs" />
     <Compile Include="Assets\Script\LHTRPG\Base\Unit.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Effect\Cost\CostText.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Effect\Cost\Cost.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Effect\Limitation.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Base\RankNumber.cs" />
     <Compile Include="Assets\Script\LHTRPG\Prop\Object.cs" />
     <Compile Include="Assets\Script\LHTRPG\Prop\Prop.cs" />
     <Compile Include="Assets\Script\LHTRPG\Prop\SceneEffect.cs" />
@@ -83,9 +87,9 @@
     <Compile Include="Assets\Script\LHTRPG\Scene\SceneBattle.cs" />
     <Compile Include="Assets\Script\LHTRPG\Scene\SceneBriefing.cs" />
     <Compile Include="Assets\Script\LHTRPG\Scene\Session.cs" />
-    <Compile Include="Assets\Script\LHTRPG\Skill\Effect.cs" />
-    <Compile Include="Assets\Script\LHTRPG\Skill\Skill.cs" />
-    <Compile Include="Assets\Script\LHTRPG\Skill\SkillBasic.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Effect\Effect.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Effect\Skill.cs" />
+    <Compile Include="Assets\Script\LHTRPG\Effect\SkillBasic.cs" />
     <Compile Include="Assets\Script\LHTRPG\Status\Status.cs" />
     <Compile Include="Assets\Script\LHTRPG\Status\Tag\TagStatusBehavior.cs" />
     <Compile Include="Assets\Script\LHTRPG\Status\Tag\TagStatusHate.cs" />
