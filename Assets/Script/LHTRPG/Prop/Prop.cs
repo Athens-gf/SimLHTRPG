@@ -58,7 +58,7 @@ namespace LHTRPG
             .Append(Trap)
             .Where(t => t != null);
 
-        public Prop(string name, PropType propType, Origin origin, bool isTrap) : base(UnitType.Prop)
+        protected Prop(string name, PropType propType, Origin origin, bool isTrap) : base(UnitType.Prop)
         {
             Name = name;
             PropType = new TagProp(propType);

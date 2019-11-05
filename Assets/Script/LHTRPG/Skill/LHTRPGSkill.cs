@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using EnumExtension;
-using KM.Utility;
+using AthensUtility;
 
 namespace LHTRPG
 {

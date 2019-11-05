@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using EnumExtension;
-using KM.Utility;
+using AthensUtility;
 
 namespace LHTRPG
 {
-	// 効果
-	public class Effect
-	{
+    // 効果
+    public class Effect
+    {
 
-	}
+    }
 }
