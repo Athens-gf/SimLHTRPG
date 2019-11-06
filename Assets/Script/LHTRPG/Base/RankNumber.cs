@@ -20,13 +20,14 @@ namespace LHTRPG
 
         public RankNumber(int value, bool isRank) { Value = value; IsRank = isRank; }
 
-        public override string ToString() => IsRank ? $"［ＳＲ{(Value == 0 ? "" : Value.FullWidth(true))}］" : Value.FullWidth();
+        public string ToString(bool isSign = false) => IsRank ? $"［ＳＲ{(Value == 0 ? "" : Value.FullWidth(true))}］" : Value.FullWidth(isSign);
 
         public static implicit operator RankNumber(int value) => new RankNumber(value, false);
 
         public static implicit operator RankNumber(string str)
         {
-            if (str.StartsWith("［") && str.EndsWith("］"))
+            if (str.StartsWith("［", StringComparison.CurrentCulture)
+                && str.EndsWith("］", StringComparison.CurrentCulture))
                 str = str.Remove("［").Remove("］");
             var isRank = str.Contains("ＳＲ");
             if (isRank)

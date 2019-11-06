@@ -69,61 +69,6 @@ namespace LHTRPG
         }
     }
 
-    // 判定
-    public class Judgement
-    {
-        public enum Type
-        {
-            [EnumText("判定なし")] None,
-            [EnumText("自動成功")] AlwaysSuccess,
-            [EnumText("基本")] Basic,
-            [EnumText("対決")] Versus,
-            [EnumText("本文")] Text,
-        }
-        public Type Type { get; protected set; }
-        public enum BasicType
-        {
-            [EnumText("無し")] Nothing,
-            [EnumText("識別難易度")] Identification,
-            [EnumText("探知難易度")] Search,
-            [EnumText("解析難易度")] Analysis,
-            [EnumText("解除難易度")] Release,
-            [EnumText("本文")] Text,
-        }
-        public BasicType BasicType { get; protected set; }
-        public SkillValue UseSkillActive { get; protected set; }
-        public SkillValue UseSkillPassive { get; protected set; }
-        public RankNumber BuffActive { get; protected set; }
-        public RankNumber BuffPassive { get; protected set; }
-
-        public Judgement(Type type) { Type = type; }
-
-        public Judgement(SkillValue useSkill, BasicType basicType) : this(useSkill, basicType, RankNumber.Base0) { }
-        public Judgement(SkillValue useSkill, BasicType basicType, RankNumber buff) : this(Type.Basic)
-        { UseSkillActive = useSkill; BasicType = basicType; BuffActive = buff; }
-
-        public Judgement(SkillValue active, SkillValue passive) : this(active, passive, RankNumber.Base0) { }
-        public Judgement(SkillValue active, SkillValue passive, RankNumber buffActive) : this(active, passive, buffActive, RankNumber.Base0) { }
-        public Judgement(SkillValue active, SkillValue passive, RankNumber buffActive, RankNumber buffPassive) : this(Type.Versus)
-        { UseSkillActive = active; UseSkillPassive = passive; BuffActive = buffActive; BuffPassive = buffPassive; }
-
-        protected string GetBuffStr(RankNumber buff) { return (buff.ToString() == "0" ? "" : "＋" + buff); }
-
-        public override string ToString()
-        {
-            switch (Type)
-            {
-                case Type.Basic:
-                    return Type.GetText() + "（" + UseSkillActive.GetText() + GetBuffStr(BuffActive)
-                        + (BasicType == BasicType.Nothing ? "" : "／" + BasicType.GetText()) + "）";
-                case Type.Versus:
-                    return Type.GetText() + "（" + UseSkillActive.GetText() + GetBuffStr(BuffActive) + "／" + UseSkillPassive.GetText() + GetBuffStr(BuffPassive) + "）";
-                default:
-                    return Type.GetText();
-            }
-        }
-    }
-
     // 対象
     public class Target
     {

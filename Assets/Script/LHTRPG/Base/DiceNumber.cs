@@ -13,12 +13,15 @@ namespace LHTRPG
         public int Dice { get; set; } = 0;
 
         /// <summary> 固定値 </summary>
-        public int FixedNumber { get; set; } = 0;
+        public RankNumber FixedNumber { get; set; } = 0;
 
         /// <summary> ダイスが使われているかどうか </summary>
         public bool IsUseDice => Dice != 0;
 
-        public override string ToString() => Dice == 0 ? FixedNumber.FullWidth() : $"{Dice.FullWidth()}Ｄ{FixedNumber.FullWidth(true)}";
+        /// <summary> 数値的にゼロかどうか </summary>
+        public bool IsZero => !IsUseDice && FixedNumber.IsZero;
+
+        public string ToString(bool isSign = false) => Dice == 0 ? FixedNumber.ToString(isSign) : $"{Dice.FullWidth(isSign)}Ｄ{FixedNumber}";
 
         public static implicit operator string(DiceNumber dNum) => dNum.ToString();
 
@@ -45,14 +48,14 @@ namespace LHTRPG
         public static DiceNumber operator +(DiceNumber dn0, DiceNumber dn1) => new DiceNumber
         {
             Dice = dn0.Dice + dn1.Dice,
-            FixedNumber = dn0.FixedNumber + dn1.FixedNumber
+            FixedNumber = dn0.FixedNumber.Value + dn1.FixedNumber.Value
         };
 
         /// <summary> ダイス個数・固定値同士の減算 </summary>
         public static DiceNumber operator -(DiceNumber dn0, DiceNumber dn1) => new DiceNumber
         {
             Dice = dn0.Dice - dn1.Dice,
-            FixedNumber = dn0.FixedNumber - dn1.FixedNumber
+            FixedNumber = dn0.FixedNumber.Value - dn1.FixedNumber.Value
         };
 
         /// <summary> ダイス結果を返す </summary>
@@ -60,6 +63,6 @@ namespace LHTRPG
         public static int GetDice() => UnityEngine.Random.Range(1, 7);
 
         /// <summary> ロール結果を取得する </summary>
-        public RollResult Roll() => new RollResult(Enumerable.Range(0, Dice).Select(_ => GetDice()).ToList(), FixedNumber);
+        public RollResult Roll() => new RollResult(Enumerable.Range(0, Dice).Select(_ => GetDice()).ToList(), FixedNumber.Value);
     }
 }

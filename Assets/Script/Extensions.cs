@@ -24,12 +24,12 @@ namespace AthensUtility
 
         /// <summary> すべて全角にした数値を返す </summary>
         /// <param name="value">数値</param>
-        public static string FullWidth(this int value, bool isPlus = false)
+        public static string FullWidth(this int value, bool isSign = false)
         {
             var str = value.ToString().Replace("-", "－");
             FullWidthNumbers.Select((s, i) => new { Pre = i.ToString(), To = s })
                 .ToList().ForEach(x => str = str.Replace(x.Pre, x.To));
-            if (value >= 0)
+            if (isSign && value >= 0)
                 str = "＋" + str;
             return str;
         }
