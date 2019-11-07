@@ -1,10 +1,10 @@
 ﻿<Properties StartupConfiguration="{DE50D58B-9D60-C9FF-DEC7-00754540AF04}|">
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Script/LHTRPG/Base/RankNumber.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Script/LHTRPG/Effect/Judgement.cs">
     <Files>
-      <File FileName="Assets/Script/LHTRPG/Effect/Skill.cs" Line="71" Column="5" />
-      <File FileName="Assets/Script/LHTRPG/Effect/Judgement.cs" Line="41" Column="24" />
-      <File FileName="Assets/Script/LHTRPG/Base/DiceNumber.cs" Line="24" Column="83" />
-      <File FileName="Assets/Script/LHTRPG/Base/RankNumber.cs" Line="23" Column="17" />
+      <File FileName="Assets/Script/LHTRPG/Effect/Skill.cs" Line="71" Column="1" />
+      <File FileName="Assets/Script/LHTRPG/Effect/Judgement.cs" Line="48" Column="1" />
+      <File FileName="Assets/Script/LHTRPG/Base/DiceNumber.cs" Line="67" Column="1" />
+      <File FileName="Assets/Script/LHTRPG/Base/RankNumber.cs" Line="23" Column="140" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches />
